@@ -1,11 +1,522 @@
 ---
-import Welcome from '../components/Welcome.astro';
 import Layout from '../layouts/Layout.astro';
-
-// Welcome to Astro! Wondering what to do next? Check out the Astro documentation at https://docs.astro.build
-// Don't want to use any of this? Delete everything in this file, the `assets`, `components`, and `layouts` directories, and start fresh.
 ---
 
 <Layout>
-	<Welcome />
+  <div class="landing-page">
+    <style>
+      :root {
+        --gtBlue: #25aff4;
+        --gtDark: #0a0c10;
+        --gtPanel: rgba(10, 12, 16, 0.85);
+      }
+
+      body {
+        background-color: var(--gtDark);
+        color: #ffffff;
+        overflow: hidden;
+        height: 100vh;
+        width: 100vw;
+        font-family: 'Space Grotesk', sans-serif;
+        margin: 0;
+      }
+
+      .map-overlay {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background-image: 
+          linear-gradient(rgba(37, 175, 244, 0.05) 1px, transparent 1px),
+          linear-gradient(90deg, rgba(37, 175, 244, 0.05) 1px, transparent 1px);
+        background-size: 50px 50px;
+        z-index: -1;
+      }
+
+      .map-background {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: radial-gradient(circle at center, #1a1f26 0%, #0a0c10 100%);
+        z-index: -2;
+      }
+
+      .map-lines {
+        position: absolute;
+        width: 200%;
+        height: 200%;
+        top: -50%;
+        left: -50%;
+        background: repeating-linear-gradient(
+          45deg,
+          transparent,
+          transparent 100px,
+          rgba(37, 175, 244, 0.02) 100px,
+          rgba(37, 175, 244, 0.02) 101px
+        );
+        transform: rotate(-15deg);
+        z-index: -1;
+      }
+
+      .gt-panel {
+        border: 1px solid rgba(37, 175, 244, 0.3);
+        box-shadow: 0 0 15px rgba(0, 0, 0, 0.5), inset 0 0 10px rgba(37, 175, 244, 0.05);
+        backdrop-filter: blur(8px);
+        background-color: var(--gtPanel);
+      }
+
+      .node-hover:hover .node-icon {
+        transform: scale(1.1) translateY(-5px);
+        filter: drop-shadow(0 0 15px var(--gtBlue));
+      }
+
+      .node-icon {
+        transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+      }
+
+      .scanline {
+        width: 100%;
+        height: 2px;
+        background: rgba(37, 175, 244, 0.1);
+        opacity: 0.1;
+        position: absolute;
+        bottom: 100%;
+        animation: scanline 8s linear infinite;
+        pointer-events: none;
+      }
+
+      @keyframes scanline {
+        0% { bottom: 100%; }
+        100% { bottom: 0%; }
+      }
+
+      @keyframes pulse {
+        0%, 100% { opacity: 1; }
+        50% { opacity: 0.5; }
+      }
+
+      @keyframes spin {
+        from { transform: translate(-50%, -50%) rotate(0deg); }
+        to { transform: translate(-50%, -50%) rotate(360deg); }
+      }
+
+      @keyframes spin-reverse {
+        from { transform: translate(-50%, -50%) rotate(360deg); }
+        to { transform: translate(-50%, -50%) rotate(0deg); }
+      }
+
+      .landing-page {
+        position: relative;
+        width: 100vw;
+        height: 100vh;
+      }
+
+      header {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        padding: 1rem 2rem;
+        z-index: 50;
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        pointer-events: none;
+        box-sizing: border-box;
+      }
+
+      header > div {
+        pointer-events: auto;
+      }
+
+      .header-left {
+        display: flex;
+        gap: 1rem;
+      }
+
+      .panel {
+        padding: 0.5rem 1rem;
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+      }
+
+      .label {
+        font-size: 0.625rem;
+        font-weight: 700;
+        color: var(--gtBlue);
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+      }
+
+      .value {
+        font-size: 1.25rem;
+        font-weight: 700;
+        letter-spacing: -0.025em;
+      }
+
+      .currency {
+        color: var(--gtBlue);
+      }
+
+      .user-panel {
+        padding: 1rem;
+        text-align: right;
+      }
+
+      .user-name {
+        font-size: 1.25rem;
+        font-weight: 700;
+        letter-spacing: -0.01em;
+        text-transform: uppercase;
+      }
+
+      .user-role {
+        font-size: 0.75rem;
+        color: var(--gtBlue);
+        font-weight: 500;
+        letter-spacing: 0.05em;
+        text-transform: uppercase;
+      }
+
+      .tags {
+        display: flex;
+        justify-content: flex-end;
+        gap: 0.5rem;
+        margin-top: 0.5rem;
+      }
+
+      .tag {
+        font-size: 0.5625rem;
+        border: 1px solid rgba(37, 175, 244, 0.3);
+        padding: 0.125rem 0.25rem;
+        color: rgba(37, 175, 244, 0.5);
+      }
+
+      main {
+        position: relative;
+        width: 100%;
+        height: 100%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 5rem;
+      }
+
+      .map-container {
+        position: relative;
+        width: 100%;
+        height: 100%;
+        max-width: 72rem;
+        max-height: 43.75rem;
+      }
+
+      .nav-node {
+        position: absolute;
+        cursor: pointer;
+      }
+
+      .node-content {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+      }
+
+      .profile-icon {
+        width: 8rem;
+        height: 8rem;
+        border-radius: 50%;
+        border: 4px solid var(--gtBlue);
+        padding: 0.25rem;
+        overflow: hidden;
+        margin-bottom: 0.75rem;
+        background-color: var(--gtDark);
+      }
+
+      .profile-img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        border-radius: 50%;
+        filter: grayscale(100%);
+      }
+
+      .profile-img:hover {
+        filter: grayscale(0%);
+      }
+
+      .small-icon {
+        width: 6rem;
+        height: 6rem;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin-bottom: 0.75rem;
+      }
+
+      .small-icon svg {
+        width: 5rem;
+        height: 5rem;
+        color: white;
+        opacity: 0.8;
+      }
+
+      .license-icon svg {
+        width: 4rem;
+        height: 4rem;
+        color: #ef4444;
+        filter: drop-shadow(0 0 8px rgba(239, 68, 68, 0.5));
+      }
+
+      .showroom-icon svg {
+        width: 4rem;
+        height: 4rem;
+        color: var(--gtBlue);
+        opacity: 0.8;
+      }
+
+      .node-label {
+        padding: 0.25rem 0.75rem;
+        transform: skewX(-12deg);
+      }
+
+      .label-text {
+        font-size: 0.875rem;
+        font-weight: 700;
+        letter-spacing: 0.05em;
+        font-style: italic;
+        display: block;
+        transform: skewX(12deg);
+      }
+
+      .center-grid {
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        width: 12rem;
+        height: 12rem;
+        border: 1px solid rgba(37, 175, 244, 0.2);
+        border-radius: 50%;
+        animation: spin 20s linear infinite;
+        z-index: 0;
+      }
+
+      .center-grid-2 {
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        width: 16rem;
+        height: 16rem;
+        border: 1px solid rgba(37, 175, 244, 0.1);
+        border-radius: 50%;
+        animation: spin-reverse 30s linear infinite;
+        z-index: 0;
+      }
+
+      footer {
+        position: fixed;
+        bottom: 0;
+        left: 0;
+        width: 100%;
+        padding: 1.5rem 2rem;
+        z-index: 50;
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-end;
+        box-sizing: border-box;
+      }
+
+      .mission-status {
+        padding: 1rem;
+        max-width: 24rem;
+      }
+
+      .status-header {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        margin-bottom: 0.25rem;
+      }
+
+      .status-dot {
+        width: 0.5rem;
+        height: 0.5rem;
+        background-color: var(--gtBlue);
+        animation: pulse 2s ease-in-out infinite;
+      }
+
+      .status-label {
+        font-size: 0.625rem;
+        font-weight: 700;
+        color: var(--gtBlue);
+        letter-spacing: 0.05em;
+        text-transform: uppercase;
+      }
+
+      .mission-text {
+        font-size: 0.75rem;
+        line-height: 1.5;
+        opacity: 0.8;
+      }
+
+      .buttons {
+        display: flex;
+        gap: 0.5rem;
+      }
+
+      .btn {
+        padding: 0.5rem 1.5rem;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: -0.01em;
+        font-size: 0.875rem;
+        cursor: pointer;
+        border: none;
+      }
+
+      .btn-primary {
+        background-color: var(--gtBlue);
+        color: var(--gtDark);
+      }
+
+      .btn-primary:hover {
+        background-color: white;
+      }
+
+      .btn-secondary {
+        background-color: var(--gtPanel);
+        border: 1px solid rgba(255, 255, 255, 0.2);
+      }
+
+      .btn-secondary:hover {
+        border-color: var(--gtBlue);
+      }
+
+      .svg-pulse {
+        animation: pulse 2s ease-in-out infinite;
+      }
+    </style>
+
+    <div class="map-background"></div>
+    <div class="map-overlay"></div>
+    <div class="map-lines"></div>
+    <div class="scanline"></div>
+
+    <header>
+      <div class="header-left">
+        <div class="gt-panel panel">
+          <span class="label">Credits</span>
+          <span class="value">10,000 <span class="currency">Cr</span></span>
+        </div>
+        <div class="gt-panel panel">
+          <span class="label">Date</span>
+          <span class="value uppercase" id="current-date">-- APR</span>
+        </div>
+      </div>
+      <div class="gt-panel user-panel">
+        <h1 class="user-name">Ignacio Almenar</h1>
+        <p class="user-role">Técnico Universitario en Programación</p>
+        <div class="tags">
+          <span class="tag">RESI: ARG</span>
+          <span class="tag">LVL: 24</span>
+        </div>
+      </div>
+    </header>
+
+    <main>
+      <div class="map-container">
+        <div class="nav-node node-hover" style="top: 10%; left: 15%;">
+          <div class="node-content">
+            <div class="profile-icon node-icon">
+              <img alt="Ignacio Almenar" src="https://i.pravatar.cc/256?img=50" class="profile-img" />
+            </div>
+            <div class="gt-panel node-label">
+              <span class="label-text">Profile Hub</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="nav-node node-hover" style="bottom: 20%; left: 10%;">
+          <div class="node-content">
+            <div class="small-icon node-icon">
+              <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 100 100">
+                <path d="M20 50 Q20 20 50 20 T80 50 Q80 80 50 80 T20 50" stroke-dasharray="4 2"></path>
+                <circle class="svg-pulse" cx="50" cy="50" r="30" stroke-width="1"></circle>
+              </svg>
+            </div>
+            <div class="gt-panel node-label">
+              <span class="label-text">Project Circuits</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="nav-node node-hover" style="top: 15%; right: 15%;">
+          <div class="node-content">
+            <div class="small-icon node-icon license-icon">
+              <svg viewBox="0 0 24 24" fill="currentColor">
+                <path d="M12 2L4 18H20L12 2ZM12 6.5L16.5 16H7.5L12 6.5ZM3 20V22H21V20H3Z"></path>
+              </svg>
+            </div>
+            <div class="gt-panel node-label">
+              <span class="label-text">Skill License</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="nav-node node-hover" style="bottom: 15%; right: 20%;">
+          <div class="node-content">
+            <div class="small-icon node-icon showroom-icon">
+              <svg fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24">
+                <rect height="11" rx="1" width="18" x="3" y="10"></rect>
+                <path d="M7 10V6a5 5 0 0110 0v4"></path>
+                <path d="M3 14h18M12 10v11"></path>
+              </svg>
+            </div>
+            <div class="gt-panel node-label">
+              <span class="label-text">Showroom</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="center-grid"></div>
+        <div class="center-grid-2"></div>
+      </div>
+    </main>
+
+    <footer>
+      <div class="gt-panel mission-status">
+        <div class="status-header">
+          <div class="status-dot"></div>
+          <span class="status-label">Mission Status</span>
+        </div>
+        <p class="mission-text">
+          En busca de empleo. Cargos de Desarrollador de front-end y back-end... Conectando con nuevos desafíos tecnológicos.
+        </p>
+      </div>
+      <div class="buttons">
+        <button class="gt-panel btn btn-primary">Enter Menu</button>
+        <button class="gt-panel btn btn-secondary">Options</button>
+      </div>
+    </footer>
+  </div>
 </Layout>
+
+<script>
+  function updateHUD() {
+    const now = new Date();
+    const day = now.getDate();
+    const monthNames = ["JAN", "FEB", "MAR", "APR", "MAY", "JUN", "JUL", "AUG", "SEP", "OCT", "NOV", "DEC"];
+    const month = monthNames[now.getMonth()];
+    const dateElement = document.getElementById('current-date');
+    if (dateElement) {
+      dateElement.textContent = `${day} ${month}`;
+    }
+  }
+  updateHUD();
+  setInterval(updateHUD, 60000);
+</script>
