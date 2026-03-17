@@ -23,16 +23,20 @@ npm run preview
 
 # Run Astro CLI
 npm run astro <command>
+
+# Run E2E tests (Playwright)
+npm run test
+npm run test:ui
 ```
 
-**Note**: This project does not currently have linting or testing scripts configured.
+**Note**: This project uses Playwright for End-to-End testing. Playwright will automatically start the dev server (`npm run dev`) before running tests locally.
 
 ## Agent Workflow Requirements
 
 When working on this project, agents MUST follow these operational steps:
 1. **Explain Actions**: Clearly explain the actions you are taking or planning to take before and during execution.
-2. **Post-Task Verification**: When you finish your work, you MUST run `npx astro check` (or `npm run astro check`) to verify there are no TypeScript or Astro errors.
-3. **Error Correction**: If `astro check` reports any errors, you MUST correct them before considering the task complete.
+2. **Post-Task Verification**: When you finish your work, you MUST run `npx astro check` to verify there are no TypeScript or Astro errors. You MUST also run `npm run test` to ensure E2E tests pass.
+3. **Error Correction**: If tests or `astro check` report any errors, you MUST correct them before considering the task complete.
 
 ## Code Style Guidelines
 
