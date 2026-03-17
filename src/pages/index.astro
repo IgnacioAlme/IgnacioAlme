@@ -4,7 +4,7 @@ import Layout from '../layouts/Layout.astro';
 
 <Layout>
   <div class="landing-page">
-    <style>
+    <style is:global>
       :root {
         --gtBlue: #25aff4;
         --gtDark: #0a0c10;
@@ -397,8 +397,313 @@ import Layout from '../layouts/Layout.astro';
         border-color: var(--gtBlue);
       }
 
+      .node-hover:hover .node-details {
+        opacity: 1;
+        transform: translateY(0);
+      }
+
+      .node-details {
+        position: absolute;
+        opacity: 0;
+        transform: translateY(-10px);
+        transition: all 0.3s ease;
+        pointer-events: none;
+        width: 20rem;
+        margin-top: 0.5rem;
+      }
+
+      .node-details-content {
+        background: rgba(10, 12, 16, 0.95);
+        border: 1px solid rgba(37, 175, 244, 0.4);
+        padding: 1rem;
+        border-radius: 8px;
+        backdrop-filter: blur(8px);
+        box-shadow: 0 0 20px rgba(0, 0, 0, 0.7);
+      }
+
+      .node-details-title {
+        font-size: 1rem;
+        font-weight: 700;
+        color: var(--gtBlue);
+        margin-bottom: 0.75rem;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+      }
+
+      .node-details-text {
+        font-size: 0.8125rem;
+        line-height: 1.6;
+        opacity: 0.9;
+      }
+
+      .node-details-list {
+        list-style: none;
+        padding: 0;
+        margin: 0.75rem 0 0 0;
+      }
+
+      .node-details-list-item {
+        font-size: 0.75rem;
+        padding: 0.25rem 0;
+        opacity: 0.85;
+      }
+
+      .node-details-list-item::before {
+        content: '• ';
+        color: var(--gtBlue);
+        margin-right: 0.375rem;
+      }
+
       .svg-pulse {
         animation: pulse 2s ease-in-out infinite;
+      }
+
+      .modal-overlay {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0, 0, 0, 0.8);
+        z-index: 100;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        opacity: 0;
+        visibility: hidden;
+        transition: all 0.3s ease;
+      }
+
+      .modal-overlay.active {
+        opacity: 1;
+        visibility: visible;
+      }
+
+      .modal-content {
+        background: rgba(10, 12, 16, 0.98);
+        border: 1px solid rgba(37, 175, 244, 0.5);
+        border-radius: 12px;
+        padding: 2rem;
+        max-width: 500px;
+        max-height: 80vh;
+        overflow-y: auto;
+        position: relative;
+        transform: scale(0.9);
+        transition: transform 0.3s ease;
+        box-shadow: 0 0 40px rgba(37, 175, 244, 0.2);
+      }
+
+      .modal-overlay.active .modal-content {
+        transform: scale(1);
+      }
+
+      .modal-close {
+        position: absolute;
+        top: 1rem;
+        right: 1rem;
+        background: none;
+        border: none;
+        color: var(--gtBlue);
+        font-size: 1.5rem;
+        cursor: pointer;
+        padding: 0.25rem;
+        line-height: 1;
+        transition: all 0.2s ease;
+        width: 32px;
+        height: 32px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 50%;
+      }
+
+      .modal-close:hover {
+        color: white;
+        background: rgba(37, 175, 244, 0.2);
+      }
+
+      .modal-title {
+        font-size: 1.5rem;
+        font-weight: 700;
+        color: white;
+        margin-bottom: 1.5rem;
+        text-transform: uppercase;
+        letter-spacing: 0.1em;
+        padding-bottom: 0.75rem;
+        border-bottom: 2px solid var(--gtBlue);
+      }
+
+      .modal-intro {
+        font-size: 0.9375rem;
+        line-height: 1.8;
+        opacity: 0.95;
+        margin-bottom: 1.5rem;
+        padding: 1rem;
+        background: rgba(37, 175, 244, 0.08);
+        border-left: 3px solid var(--gtBlue);
+        border-radius: 0 8px 8px 0;
+      }
+
+      .modal-contact {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.75rem;
+        margin-bottom: 1.5rem;
+        padding: 0.75rem;
+        background: rgba(10, 12, 16, 0.5);
+        border-radius: 8px;
+      }
+
+      .modal-contact-item {
+        font-size: 0.8125rem;
+        color: rgba(255, 255, 255, 0.8);
+        display: flex;
+        align-items: center;
+        gap: 0.375rem;
+      }
+
+      .modal-contact-item::before {
+        content: '';
+        width: 6px;
+        height: 6px;
+        background: var(--gtBlue);
+        border-radius: 50%;
+      }
+
+      .modal-section {
+        margin-bottom: 1.5rem;
+      }
+
+      .modal-section:last-child {
+        margin-bottom: 0;
+      }
+
+      .modal-section-title {
+        font-size: 0.75rem;
+        font-weight: 700;
+        color: var(--gtBlue);
+        margin-bottom: 0.75rem;
+        text-transform: uppercase;
+        letter-spacing: 0.15em;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+      }
+
+      .modal-section-title::after {
+        content: '';
+        flex: 1;
+        height: 1px;
+        background: linear-gradient(90deg, var(--gtBlue), transparent);
+        opacity: 0.3;
+      }
+
+      .modal-list {
+        list-style: none;
+        padding: 0;
+        margin: 0;
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+        gap: 0.5rem;
+      }
+
+      .modal-list-item {
+        font-size: 0.8125rem;
+        padding: 0.5rem 0.75rem;
+        background: rgba(37, 175, 244, 0.06);
+        border-radius: 4px;
+        border-left: 2px solid rgba(37, 175, 244, 0.3);
+        transition: all 0.2s ease;
+      }
+
+      .modal-list-item:hover {
+        background: rgba(37, 175, 244, 0.12);
+        border-left-color: var(--gtBlue);
+      }
+
+      .modal-job {
+        padding: 1rem;
+        background: rgba(37, 175, 244, 0.04);
+        border-radius: 8px;
+        margin-bottom: 1rem;
+        border: 1px solid rgba(37, 175, 244, 0.15);
+        transition: all 0.2s ease;
+      }
+
+      .modal-job:hover {
+        background: rgba(37, 175, 244, 0.08);
+        border-color: rgba(37, 175, 244, 0.3);
+      }
+
+      .modal-job:last-child {
+        margin-bottom: 0;
+      }
+
+      .modal-job-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        margin-bottom: 0.5rem;
+        flex-wrap: wrap;
+        gap: 0.25rem;
+      }
+
+      .modal-job-title {
+        font-size: 0.9375rem;
+        font-weight: 600;
+        color: white;
+      }
+
+      .modal-job-date {
+        font-size: 0.75rem;
+        color: var(--gtBlue);
+        background: rgba(37, 175, 244, 0.15);
+        padding: 0.25rem 0.5rem;
+        border-radius: 4px;
+        font-weight: 500;
+      }
+
+      .modal-job-list {
+        list-style: none;
+        padding: 0;
+        margin: 0.5rem 0 0 0;
+      }
+
+      .modal-job-list-item {
+        font-size: 0.8125rem;
+        padding: 0.375rem 0;
+        opacity: 0.85;
+        position: relative;
+        padding-left: 1rem;
+      }
+
+      .modal-job-list-item::before {
+        content: '→';
+        position: absolute;
+        left: 0;
+        color: var(--gtBlue);
+        opacity: 0.6;
+      }
+
+      .modal-tags {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.5rem;
+        margin-top: 0.5rem;
+      }
+
+      .modal-tag {
+        font-size: 0.6875rem;
+        padding: 0.25rem 0.5rem;
+        background: rgba(37, 175, 244, 0.15);
+        color: var(--gtBlue);
+        border-radius: 4px;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+      }
+
+      .nav-node {
+        cursor: pointer;
       }
     </style>
 
@@ -420,7 +725,7 @@ import Layout from '../layouts/Layout.astro';
       </div>
       <div class="gt-panel user-panel">
         <h1 class="user-name">Ignacio Almenar</h1>
-        <p class="user-role">Técnico Universitario en Programación</p>
+        <p class="user-role">Bachelor's degree in Computer Science</p>
         <div class="tags">
           <span class="tag">RESI: ARG</span>
           <span class="tag">LVL: 24</span>
@@ -430,10 +735,10 @@ import Layout from '../layouts/Layout.astro';
 
     <main>
       <div class="map-container">
-        <div class="nav-node node-hover" style="top: 10%; left: 15%;">
+        <div class="nav-node node-hover" style="top: 10%; left: 15%;" data-modal="profile">
           <div class="node-content">
             <div class="profile-icon node-icon">
-              <img alt="Ignacio Almenar" src="https://i.pravatar.cc/256?img=50" class="profile-img" />
+              <img alt="Ignacio Almenar" src="/images/profile.png" class="profile-img" />
             </div>
             <div class="gt-panel node-label">
               <span class="label-text">Profile Hub</span>
@@ -441,7 +746,7 @@ import Layout from '../layouts/Layout.astro';
           </div>
         </div>
 
-        <div class="nav-node node-hover" style="bottom: 20%; left: 10%;">
+        <div class="nav-node node-hover" style="bottom: 20%; left: 10%;" data-modal="experience">
           <div class="node-content">
             <div class="small-icon node-icon">
               <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 100 100">
@@ -450,12 +755,12 @@ import Layout from '../layouts/Layout.astro';
               </svg>
             </div>
             <div class="gt-panel node-label">
-              <span class="label-text">Project Circuits</span>
+              <span class="label-text">Experience</span>
             </div>
           </div>
         </div>
 
-        <div class="nav-node node-hover" style="top: 15%; right: 15%;">
+        <div class="nav-node node-hover" style="top: 15%; right: 15%;" data-modal="skills">
           <div class="node-content">
             <div class="small-icon node-icon license-icon">
               <svg viewBox="0 0 24 24" fill="currentColor">
@@ -463,12 +768,12 @@ import Layout from '../layouts/Layout.astro';
               </svg>
             </div>
             <div class="gt-panel node-label">
-              <span class="label-text">Skill License</span>
+              <span class="label-text">Technical Skills</span>
             </div>
           </div>
         </div>
 
-        <div class="nav-node node-hover" style="bottom: 15%; right: 20%;">
+        <div class="nav-node node-hover" style="bottom: 15%; right: 20%;" data-modal="showcase">
           <div class="node-content">
             <div class="small-icon node-icon showroom-icon">
               <svg fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24">
@@ -478,7 +783,7 @@ import Layout from '../layouts/Layout.astro';
               </svg>
             </div>
             <div class="gt-panel node-label">
-              <span class="label-text">Showroom</span>
+              <span class="label-text">Showcase</span>
             </div>
           </div>
         </div>
@@ -488,6 +793,13 @@ import Layout from '../layouts/Layout.astro';
       </div>
     </main>
 
+    <div class="modal-overlay" id="modalOverlay">
+      <div class="modal-content" id="modalContent">
+        <button class="modal-close" id="modalClose">&times;</button>
+        <div id="modalBody"></div>
+      </div>
+    </div>
+
     <footer>
       <div class="gt-panel mission-status">
         <div class="status-header">
@@ -495,7 +807,7 @@ import Layout from '../layouts/Layout.astro';
           <span class="status-label">Mission Status</span>
         </div>
         <p class="mission-text">
-          En busca de empleo. Cargos de Desarrollador de front-end y back-end... Conectando con nuevos desafíos tecnológicos.
+          Full Stack Developer. Building scalable web apps with React, Node.js & AWS. Open to new opportunities.
         </p>
       </div>
       <div class="buttons">
@@ -507,6 +819,188 @@ import Layout from '../layouts/Layout.astro';
 </Layout>
 
 <script>
+  const modalData: Record<string, { title: string; content: string }> = {
+    profile: {
+      title: 'About Me',
+      content: `
+        <p class="modal-intro">
+          Full Stack Developer with strong experience building scalable web applications using React, Node.js, Express, and relational databases. Skilled in designing robust backend architecture and implementing real-time communication with WebSockets.
+        </p>
+        <div class="modal-contact">
+          <span class="modal-contact-item">English C2</span>
+          <span class="modal-contact-item">UTN - Computer Science Technician</span>
+          <span class="modal-contact-item">Chaco, Argentina</span>
+          <span class="modal-contact-item">+54 9 3624 064243</span>
+          <span class="modal-contact-item">ignacio.yair.almenar@gmail.com</span>
+        </div>
+        <div class="modal-section">
+          <div class="modal-section-title">Languages</div>
+          <ul class="modal-list">
+            <li class="modal-list-item">English (C2 - Fluent)</li>
+            <li class="modal-list-item">Spanish (Native)</li>
+          </ul>
+        </div>
+        <div class="modal-section">
+          <div class="modal-section-title">Education</div>
+          <ul class="modal-list">
+            <li class="modal-list-item">UTN Chaco - Computer Science Technician</li>
+            <li class="modal-list-item">2022 - 2024</li>
+          </ul>
+        </div>
+      `
+    },
+    experience: {
+      title: 'Work History',
+      content: `
+        <div class="modal-job">
+          <div class="modal-job-header">
+            <span class="modal-job-title">Subsecretary of Science & Technology</span>
+            <span class="modal-job-date">Sep 2024 - Present</span>
+          </div>
+          <ul class="modal-job-list">
+            <li class="modal-job-list-item">Designed and developed backend services using Node.js and Express</li>
+            <li class="modal-job-list-item">Built scalable RESTful APIs for AI-driven publishing platform</li>
+            <li class="modal-job-list-item">Implemented WebSockets for real-time bidirectional communication</li>
+            <li class="modal-job-list-item">Integrated Python automation scripts with LLMs</li>
+            <li class="modal-job-list-item">Developed real-time chat system with low-latency delivery</li>
+          </ul>
+        </div>
+        <div class="modal-job">
+          <div class="modal-job-header">
+            <span class="modal-job-title">Shuhariko</span>
+            <span class="modal-job-date">Feb 2023 - May 2025</span>
+          </div>
+          <ul class="modal-job-list">
+            <li class="modal-job-list-item">Developed landing pages and custom CMS solutions using React</li>
+            <li class="modal-job-list-item">Deployed and managed applications using AWS hosting services</li>
+            <li class="modal-job-list-item">Built reusable, strongly-typed components</li>
+            <li class="modal-job-list-item">Focused on frontend performance optimization and UX</li>
+          </ul>
+        </div>
+        <div class="modal-job">
+          <div class="modal-job-header">
+            <span class="modal-job-title">BIOS Informática</span>
+            <span class="modal-job-date">Sep 2025 - Present</span>
+          </div>
+          <ul class="modal-job-list">
+            <li class="modal-job-list-item">Managed and optimized WordPress e-commerce platforms</li>
+            <li class="modal-job-list-item">Implemented backend improvements and performance optimizations</li>
+            <li class="modal-job-list-item">Generated analytics and performance reports</li>
+          </ul>
+        </div>
+      `
+    },
+    skills: {
+      title: 'Technical Skills',
+      content: `
+        <div class="modal-section">
+          <div class="modal-section-title">Frontend</div>
+          <ul class="modal-list">
+            <li class="modal-list-item">React (SPA development)</li>
+            <li class="modal-list-item">Responsive UI Development</li>
+            <li class="modal-list-item">Performance Optimization</li>
+            <li class="modal-list-item">WebSockets Integration</li>
+            <li class="modal-list-item">TypeScript</li>
+          </ul>
+        </div>
+        <div class="modal-section">
+          <div class="modal-section-title">Backend</div>
+          <ul class="modal-list">
+            <li class="modal-list-item">Node.js / Express</li>
+            <li class="modal-list-item">REST API Design</li>
+            <li class="modal-list-item">Prisma ORM</li>
+            <li class="modal-list-item">AWS Cloud Services</li>
+            <li class="modal-list-item">Git Version Control</li>
+          </ul>
+        </div>
+        <div class="modal-section">
+          <div class="modal-section-title">Database</div>
+          <ul class="modal-list">
+            <li class="modal-list-item">MariaDB</li>
+            <li class="modal-list-item">Relational Database Design</li>
+            <li class="modal-list-item">Query Optimization</li>
+          </ul>
+        </div>
+        <div class="modal-section">
+          <div class="modal-section-title">Automation & Tools</div>
+          <ul class="modal-list">
+            <li class="modal-list-item">Python Automation</li>
+            <li class="modal-list-item">n8n Workflow Automation</li>
+            <li class="modal-list-item">WordPress Development</li>
+          </ul>
+        </div>
+      `
+    },
+    showcase: {
+      title: 'Showcase',
+      content: `
+        <p class="modal-intro">
+          Welcome to my project showcase! Here you'll find examples of my work demonstrating full-stack development capabilities.
+        </p>
+        <div class="modal-job">
+          <div class="modal-job-header">
+            <span class="modal-job-title">Coming Soon</span>
+            <span class="modal-job-date">In Development</span>
+          </div>
+          <ul class="modal-job-list">
+            <li class="modal-job-list-item">Real-time collaboration platform</li>
+            <li class="modal-job-list-item">E-commerce solutions</li>
+            <li class="modal-job-list-item">API integrations and automation</li>
+          </ul>
+        </div>
+        <div class="modal-section">
+          <div class="modal-section-title">What I'm Working On</div>
+          <ul class="modal-list">
+            <li class="modal-list-item">AI-powered applications with LLMs</li>
+            <li class="modal-list-item">Real-time dashboards</li>
+            <li class="modal-list-item">Microservices architecture</li>
+          </ul>
+        </div>
+      `
+    }
+  };
+
+  const modalOverlay = document.getElementById('modalOverlay');
+  const modalBody = document.getElementById('modalBody');
+  const modalClose = document.getElementById('modalClose');
+
+  document.querySelectorAll('.nav-node').forEach(node => {
+    node.addEventListener('click', () => {
+      const modalId = node.getAttribute('data-modal');
+      if (modalId && modalData[modalId]) {
+        const data = modalData[modalId];
+        if (modalBody) {
+          modalBody.innerHTML = `<div class="modal-title">${data.title}</div>${data.content}`;
+        }
+        if (modalOverlay) {
+          modalOverlay.classList.add('active');
+        }
+      }
+    });
+  });
+
+  if (modalClose) {
+    modalClose.addEventListener('click', () => {
+      if (modalOverlay) {
+        modalOverlay.classList.remove('active');
+      }
+    });
+  }
+
+  if (modalOverlay) {
+    modalOverlay.addEventListener('click', (e) => {
+      if (e.target === modalOverlay) {
+        modalOverlay.classList.remove('active');
+      }
+    });
+  }
+
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape' && modalOverlay?.classList.contains('active')) {
+      modalOverlay.classList.remove('active');
+    }
+  });
+
   function updateHUD() {
     const now = new Date();
     const day = now.getDate();
