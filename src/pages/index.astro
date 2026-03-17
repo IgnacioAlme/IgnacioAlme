@@ -1,5 +1,6 @@
 ---
 import Layout from '../layouts/Layout.astro';
+const base = '/IgnacioAlme';
 ---
 
 <Layout>
@@ -738,7 +739,7 @@ import Layout from '../layouts/Layout.astro';
         <div class="nav-node node-hover" style="top: 10%; left: 15%;" data-modal="profile">
           <div class="node-content">
             <div class="profile-icon node-icon">
-              <img alt="Ignacio Almenar" src="/images/profile.png" class="profile-img" />
+              <img alt="Ignacio Almenar" src={`${base}/images/profile.png`} class="profile-img" />
             </div>
             <div class="gt-panel node-label">
               <span class="label-text">Profile Hub</span>
