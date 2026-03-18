@@ -1,121 +1,130 @@
 # 3D City Map UI — Implementation Plan
 
-Convert the current 2D [index.astro](file:///c:/Users/vicio/Documents/Portfolio/IgnacioAlme/src/pages/index.astro) landing page into a rotatable isometric-style 3D city built with Three.js. The existing HUD (header/footer) and modal system are preserved as HTML overlays on top of the canvas.
+Convert the current 2D `index.astro` landing page into a rotatable isometric-style 3D city built with Three.js. The existing HUD (header/footer) and modal system are preserved as HTML overlays on top of the canvas.
 
 ---
 
-## Proposed Changes
+## Section 1 — Dependencies `[ ]`
 
-### Three.js Dependency
-
-#### [MODIFY] [package.json](file:///c:/Users/vicio/Documents/Portfolio/IgnacioAlme/package.json)
-- Add `three` and `@types/three` as dependencies.
-
----
-
-### New 3D Scene Component
-
-#### [NEW] [CityScene.astro](file:///c:/Users/vicio/Documents/Portfolio/IgnacioAlme/src/components/CityScene.astro)
-
-A self-contained Astro component that mounts a full-viewport Three.js canvas. All 3D logic lives in its `<script>` block (client-side only). Responsibilities:
-
-- **Scene setup**: `WebGLRenderer`, `PerspectiveCamera` at ~60° tilt (isometric feel), `OrbitControls` (mouse/touch drag to rotate, scroll to zoom, clamped angles so the city stays visible).
-- **Lighting**: Ambient light (soft blue-white) + two `DirectionalLight`s to create depth and a slight "GT" neon rim effect.
-- **Ground plane**: `PlaneGeometry` with a dark material and a `GridHelper` overlaid to echo the existing grid CSS motif.
-- **Decoration buildings** (procedural): ~30–50 random `BoxGeometry` towers seeded across the grid. Varying heights/widths, all using the GT dark palette. Do not respond to clicks.
-- **Landmark buildings** (4): Distinct geometry clusters that conceptually map to the existing nav-nodes. Clickable via raycasting.
-- **Label sprites**: `THREE.Sprite` text labels above each landmark (white text, GT blue border).
-- **Raycasting**: On `pointerdown`, cast a ray against landmark meshes; fire the existing modal-open logic when a hit is detected.
-- **Animation loop**: Subtle camera orbit idle animation (very slow auto-rotation), disabled while user is dragging.
-- **Post-processing** (optional, stretch goal): `UnrealBloomPass` for glow on landmark tops.
+- [ ] Install `three` and `@types/three`:
+  ```bash
+  npm install three
+  npm install -D @types/three
+  ```
+- [ ] Confirm `package.json` reflects both packages under `dependencies` and `devDependencies`.
 
 ---
 
-### Landmark Building Specs (Placeholder Models)
+## Section 2 — Three.js Scene Setup `[ ]`
 
-All 4 landmarks use procedural `THREE.BufferGeometry` (no external model files needed for the placeholder phase). Each is a composition of primitive shapes. Below is the specification so that a 3D artist can replace them later.
+**File**: [NEW] `src/components/CityScene.astro`
 
-| Node | Visual Concept | Placeholder Geometry | Target Dimensions (w×d×h) | Interaction |
-|---|---|---|---|---|
-| **Profile Hub** | Lighthouse / tower with circular ring | Cylinder + Torus (halo ring) | 1×1×5 units | Click → opens Profile modal |
-| **Experience** | Industrial complex / antenna tower | Box + thin Cylinder mast | 2×2×4 units | Click → opens Experience modal |
-| **Technical Skills** | Pyramid / crystal spire (mirrors existing triangle icon) | `ConeGeometry` (4-sided) | 1.5×1.5×4 units | Click → opens Skills modal |
-| **Showcase** | Vault / locked chest building (mirrors existing padlock icon) | Box (body) + Box (shackle arch) | 2×2×3 units | Click → opens Showcase modal |
-
-#### Model Requirements for Future Artist Assets (GLB/GLTF format)
-When placeholder geometry is replaced by real models, they must meet:
-- **Format**: `.glb` (binary glTF 2.0) — loaded via `THREE.GLTFLoader`.
-- **Scale**: Designed at 1 unit = 1 meter. Fit within the bounding boxes above.
-- **Origin**: Pivot point at the base center of the model.
-- **Materials**: PBR (`MeshStandardMaterial`-compatible) — `baseColorTexture`, `roughnessMetallicTexture`, optional `emissiveTexture` for glow areas.
-- **Texture resolution**: Max 1024×1024 px (portfolio site must stay lightweight).
-- **Poly count**: ≤ 3,000 triangles per landmark model.
-- **Naming**: `profile-hub.glb`, `experience.glb`, `skills.glb`, `showcase.glb` — placed in `public/models/`.
-- **Vertex colors**: Optional GT-blue emissive highlights baked into vertex colors for the neon effect.
-- **Animation**: Optional idle animation (e.g. slow halo spin) using a `THREE.AnimationMixer` clip named `idle`.
+- [ ] Create the component file with a full-viewport `<canvas id="city-canvas">`.
+- [ ] Initialize `WebGLRenderer` (antialias, alpha, device pixel ratio).
+- [ ] Set up `PerspectiveCamera` at ~60° tilt for an isometric feel.
+- [ ] Add `OrbitControls`: enable mouse/touch drag to rotate, scroll to zoom; clamp vertical angle so the city never goes below ground.
+- [ ] Add lighting:
+  - Ambient light (soft blue-white).
+  - Two `DirectionalLight`s for depth and GT neon rim effect.
+- [ ] Build ground plane (`PlaneGeometry`) with dark material + `GridHelper` overlay.
+- [ ] Add resize listener to keep canvas responsive.
+- [ ] Start the `requestAnimationFrame` render loop with slow idle auto-rotation (paused while dragging).
 
 ---
 
-### Updated Landing Page
+## Section 3 — Decoration Buildings `[ ]`
 
-#### [MODIFY] [index.astro](file:///c:/Users/vicio/Documents/Portfolio/IgnacioAlme/src/pages/index.astro)
+**File**: `src/components/CityScene.astro`
 
-- Import and embed `<CityScene />` as the full-viewport background element.
-- Remove the 2D `map-container`, `.nav-node`, `.center-grid` divs (replaced by the 3D canvas).
-- Retain all CSS for HUD panels (`header`, `footer`, `.gt-panel`, `.modal-*`) as an overlay (`z-index` above canvas).
-- Retain all modal HTML and the existing `<script>` modal JS (raycasting calls into the same `openModal(id)` helper).
-- Extract a shared `openModal(id: string)` function so both the old script block and the new Three.js raycaster can trigger modals.
-
----
-
-### Model Spec Document
-
-#### [NEW] [3d-city-models.md](file:///c:/Users/vicio/Documents/Portfolio/IgnacioAlme/docs/3d-city-models.md)
-A standalone reference for artists/contributors documenting all model requirements (mirrors the table + list above).
+- [ ] Generate ~30–50 random `BoxGeometry` towers spread across the grid.
+- [ ] Randomize height, width, and depth within defined ranges.
+- [ ] Apply GT dark palette materials (dark grey base, subtle GT-blue emissive on top faces).
+- [ ] Ensure decoration meshes are excluded from the raycast target group (clicks pass through them).
 
 ---
 
-### Playwright Tests
+## Section 4 — Landmark Buildings (Placeholder Geometry) `[ ]`
 
-#### [MODIFY] [landing.spec.ts](file:///c:/Users/vicio/Documents/Portfolio/IgnacioAlme/tests/landing.spec.ts)
-The DOM structure changes significantly — `.nav-node`, `.center-grid`, `.map-overlay` etc. are removed. Tests must be updated:
+**File**: `src/components/CityScene.astro`
 
-| Existing Test | Action |
-|---|---|
-| `navigation nodes are present` | Rewrite to check for label text in a `data-label` attribute on the Three.js canvas wrapper or hidden `<div>` sentinel elements that the 3D script creates |
-| `profile hub shows detail panel on click` | Simulate click using `page.locator('#city-canvas').click()` at the known pixel position of the Profile Hub landmark (or add a hidden trigger element) |
-| `background elements are present` | Update to check for `#city-canvas` instead of `.map-background` / `.map-overlay` etc. |
-| `central grids are animated` | Remove (no longer exists as HTML) |
-| All modal tests | Keep as-is — modal HTML/JS is unchanged |
-| HUD tests (header, footer, date) | Keep as-is — HUD HTML is unchanged |
+| Landmark | Geometry | Dimensions (w×d×h) | Modal |
+|---|---|---|---|
+| Profile Hub | Cylinder + Torus halo | 1×1×5 | `profile` |
+| Experience | Box + Cylinder mast | 2×2×4 | `experience` |
+| Technical Skills | 4-sided ConeGeometry | 1.5×1.5×4 | `skills` |
+| Showcase | Box body + Box arch | 2×2×3 | `showcase` |
 
-> [!IMPORTANT]
-> Playwright cannot click inside a WebGL canvas at a semantic level. To keep E2E tests meaningful, the implementation will insert **hidden `<button>` sentinel elements** (visually off-screen, `opacity: 0; pointer-events: none`) with `data-modal="profile"` etc., which the Three.js raycaster programmatically `.click()`s. Playwright tests can then target these buttons.
+- [ ] Build **Profile Hub** landmark group.
+- [ ] Build **Experience** landmark group.
+- [ ] Build **Technical Skills** landmark group.
+- [ ] Build **Showcase** landmark group.
+- [ ] Add all 4 landmark meshes to a shared `clickableObjects` array for raycasting.
+- [ ] Add floating `THREE.Sprite` text labels above each landmark.
+
+#### Future Artist Model Requirements (GLB/GLTF)
+When replacing placeholders with real models, each `.glb` file must:
+- Use **binary glTF 2.0** format and be loaded via `THREE.GLTFLoader`.
+- Fit within the bounding boxes above (1 unit = 1 meter, pivot at base center).
+- Use **PBR materials** (`MeshStandardMaterial`-compatible): `baseColorTexture`, `roughnessMetallicTexture`, optional `emissiveTexture`.
+- Stay within **≤ 3,000 triangles** and **≤ 1024×1024 px** textures.
+- Be named `profile-hub.glb`, `experience.glb`, `skills.glb`, `showcase.glb` and placed in `public/models/`.
+- Optionally include a looping `idle` clip for `THREE.AnimationMixer`.
 
 ---
 
-## Verification Plan
+## Section 5 — Interaction (Raycasting & Modals) `[ ]`
 
-### Automated Tests
+**Files**: `src/components/CityScene.astro`, `src/pages/index.astro`
 
-```bash
-# 1. Type-check all Astro/TS files
-npx astro check
+- [ ] Add `pointerdown` listener on the canvas; cast a ray against `clickableObjects`.
+- [ ] On hit, read the `userData.modal` property of the intersected mesh and call `openModal(id)`.
+- [ ] Extract `openModal(id: string)` as a shared helper (exposed on `window`) so both the Three.js script and any HTML can call it.
+- [ ] Insert 4 **hidden sentinel `<button>` elements** (off-screen, `opacity: 0; pointer-events: none`) with `data-modal="profile|experience|skills|showcase"` — the raycaster programmatically `.click()`s them so Playwright can target them.
 
-# 2. Run E2E Playwright suite
-npm run test
-```
+---
 
-All tests must report **0 failures**.
+## Section 6 — Landing Page Update `[ ]`
 
-### Manual Verification
+**File**: [MODIFY] `src/pages/index.astro`
 
-After `npm run dev` (http://localhost:4321):
+- [ ] Import and render `<CityScene />` as the full-viewport background.
+- [ ] Remove 2D elements: `.map-container`, `.nav-node` divs, `.center-grid`, `.map-background`, `.map-overlay`, `.map-lines`, `.scanline`.
+- [ ] Remove CSS rules for the removed elements.
+- [ ] Keep all HUD CSS (`header`, `footer`, `.gt-panel`, `.panel`, `.label`, `.value`, etc.) and position the HUD overlay above the canvas (`z-index` stack).
+- [ ] Keep all modal HTML (`#modalOverlay`, `#modalContent`, `#modalBody`, `#modalClose`).
+- [ ] Keep all modal JS logic; wire it to use the shared `openModal` helper.
 
-1. **3D scene loads** — a dark city grid with buildings is visible on the landing page.
-2. **Camera rotation** — click and drag on the canvas; the city should rotate smoothly.
-3. **Scroll zoom** — scroll the mouse wheel; the camera zooms in/out.
-4. **Landmark click → modal** — click on each of the 4 landmark buildings; the correct modal (About Me / Work History / Technical Skills / Showcase) should open.
-5. **Modal close** — close via ×, overlay click, or Escape key.
-6. **HUD** — header (Credits, Date, user name) and footer (Mission Status, buttons) still visible.
-7. **Dark theme** — background stays dark, GT blue accents visible on buildings and labels.
+---
+
+## Section 7 — Playwright Tests Update `[ ]`
+
+**File**: [MODIFY] `tests/landing.spec.ts`
+
+- [ ] Update `navigation nodes are present` — target sentinel buttons instead of `.nav-node`.
+- [ ] Update `profile hub shows detail panel on click` — click sentinel button `[data-modal="profile"]`.
+- [ ] Update `experience modal shows on click` — click sentinel button `[data-modal="experience"]`.
+- [ ] Update `technical skills modal shows on click` — click sentinel button `[data-modal="skills"]`.
+- [ ] Update `background elements are present` — check for `#city-canvas` instead of `.map-background` / `.map-overlay` etc.
+- [ ] Remove `central grids are animated` test (element no longer exists).
+- [ ] Keep all other modal tests unchanged (HTML/JS is unchanged).
+- [ ] Keep all HUD tests unchanged (header, footer, date).
+
+---
+
+## Section 8 — Verification `[ ]`
+
+- [ ] Run `npx astro check` → **0 errors, 0 warnings**.
+- [ ] Run `npm run test` → **all tests pass**.
+- [ ] Manual check — `npm run dev` at `http://localhost:4321`:
+  - [ ] 3D scene loads with dark city and buildings visible.
+  - [ ] Camera rotates on drag; zooms on scroll.
+  - [ ] Clicking each landmark opens the correct modal.
+  - [ ] Modals close via ×, overlay click, and Escape.
+  - [ ] HUD (header, footer, date) remains visible.
+  - [ ] Dark GT theme with blue accents is intact.
+
+---
+
+## Section 9 — Model Spec Doc `[ ]`
+
+- [ ] Create `docs/3d-city-models.md` as a standalone artist reference documenting model format, scale, poly/texture limits, file naming, and animation conventions.

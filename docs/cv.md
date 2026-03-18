@@ -90,8 +90,7 @@ Frontend
 #### LANGUAGES:
 
 ```
-● English C
-● Native Spanish.
+● English
 ```
 ### FORMAL EDUCATION
 

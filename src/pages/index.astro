@@ -1,10 +1,12 @@
 ---
 import Layout from '../layouts/Layout.astro';
-const base = '/IgnacioAlme';
+import CityScene from '../components/CityScene.astro';
 ---
 
 <Layout>
   <div class="landing-page">
+    <CityScene />
+
     <style is:global>
       :root {
         --gtBlue: #25aff4;
@@ -22,46 +24,6 @@ const base = '/IgnacioAlme';
         margin: 0;
       }
 
-      .map-overlay {
-        position: fixed;
-        top: 0;
-        left: 0;
-        width: 100%;
-        height: 100%;
-        background-image: 
-          linear-gradient(rgba(37, 175, 244, 0.05) 1px, transparent 1px),
-          linear-gradient(90deg, rgba(37, 175, 244, 0.05) 1px, transparent 1px);
-        background-size: 50px 50px;
-        z-index: -1;
-      }
-
-      .map-background {
-        position: fixed;
-        top: 0;
-        left: 0;
-        width: 100%;
-        height: 100%;
-        background: radial-gradient(circle at center, #1a1f26 0%, #0a0c10 100%);
-        z-index: -2;
-      }
-
-      .map-lines {
-        position: absolute;
-        width: 200%;
-        height: 200%;
-        top: -50%;
-        left: -50%;
-        background: repeating-linear-gradient(
-          45deg,
-          transparent,
-          transparent 100px,
-          rgba(37, 175, 244, 0.02) 100px,
-          rgba(37, 175, 244, 0.02) 101px
-        );
-        transform: rotate(-15deg);
-        z-index: -1;
-      }
-
       .gt-panel {
         border: 1px solid rgba(37, 175, 244, 0.3);
         box-shadow: 0 0 15px rgba(0, 0, 0, 0.5), inset 0 0 10px rgba(37, 175, 244, 0.05);
@@ -76,22 +38,6 @@ const base = '/IgnacioAlme';
 
       .node-icon {
         transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-      }
-
-      .scanline {
-        width: 100%;
-        height: 2px;
-        background: rgba(37, 175, 244, 0.1);
-        opacity: 0.1;
-        position: absolute;
-        bottom: 100%;
-        animation: scanline 8s linear infinite;
-        pointer-events: none;
-      }
-
-      @keyframes scanline {
-        0% { bottom: 100%; }
-        100% { bottom: 0%; }
       }
 
       @keyframes pulse {
@@ -195,128 +141,6 @@ const base = '/IgnacioAlme';
         border: 1px solid rgba(37, 175, 244, 0.3);
         padding: 0.125rem 0.25rem;
         color: rgba(37, 175, 244, 0.5);
-      }
-
-      main {
-        position: relative;
-        width: 100%;
-        height: 100%;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        padding: 5rem;
-      }
-
-      .map-container {
-        position: relative;
-        width: 100%;
-        height: 100%;
-        max-width: 72rem;
-        max-height: 43.75rem;
-      }
-
-      .nav-node {
-        position: absolute;
-        cursor: pointer;
-      }
-
-      .node-content {
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-      }
-
-      .profile-icon {
-        width: 8rem;
-        height: 8rem;
-        border-radius: 50%;
-        border: 4px solid var(--gtBlue);
-        padding: 0.25rem;
-        overflow: hidden;
-        margin-bottom: 0.75rem;
-        background-color: var(--gtDark);
-      }
-
-      .profile-img {
-        width: 100%;
-        height: 100%;
-        object-fit: cover;
-        border-radius: 50%;
-        filter: grayscale(100%);
-      }
-
-      .profile-img:hover {
-        filter: grayscale(0%);
-      }
-
-      .small-icon {
-        width: 6rem;
-        height: 6rem;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        margin-bottom: 0.75rem;
-      }
-
-      .small-icon svg {
-        width: 5rem;
-        height: 5rem;
-        color: white;
-        opacity: 0.8;
-      }
-
-      .license-icon svg {
-        width: 4rem;
-        height: 4rem;
-        color: #ef4444;
-        filter: drop-shadow(0 0 8px rgba(239, 68, 68, 0.5));
-      }
-
-      .showroom-icon svg {
-        width: 4rem;
-        height: 4rem;
-        color: var(--gtBlue);
-        opacity: 0.8;
-      }
-
-      .node-label {
-        padding: 0.25rem 0.75rem;
-        transform: skewX(-12deg);
-      }
-
-      .label-text {
-        font-size: 0.875rem;
-        font-weight: 700;
-        letter-spacing: 0.05em;
-        font-style: italic;
-        display: block;
-        transform: skewX(12deg);
-      }
-
-      .center-grid {
-        position: absolute;
-        top: 50%;
-        left: 50%;
-        transform: translate(-50%, -50%);
-        width: 12rem;
-        height: 12rem;
-        border: 1px solid rgba(37, 175, 244, 0.2);
-        border-radius: 50%;
-        animation: spin 20s linear infinite;
-        z-index: 0;
-      }
-
-      .center-grid-2 {
-        position: absolute;
-        top: 50%;
-        left: 50%;
-        transform: translate(-50%, -50%);
-        width: 16rem;
-        height: 16rem;
-        border: 1px solid rgba(37, 175, 244, 0.1);
-        border-radius: 50%;
-        animation: spin-reverse 30s linear infinite;
-        z-index: 0;
       }
 
       footer {
@@ -708,11 +532,6 @@ const base = '/IgnacioAlme';
       }
     </style>
 
-    <div class="map-background"></div>
-    <div class="map-overlay"></div>
-    <div class="map-lines"></div>
-    <div class="scanline"></div>
-
     <header>
       <div class="header-left">
         <div class="gt-panel panel">
@@ -733,66 +552,6 @@ const base = '/IgnacioAlme';
         </div>
       </div>
     </header>
-
-    <main>
-      <div class="map-container">
-        <div class="nav-node node-hover" style="top: 10%; left: 15%;" data-modal="profile">
-          <div class="node-content">
-            <div class="profile-icon node-icon">
-              <img alt="Ignacio Almenar" src={`${base}/images/profile.png`} class="profile-img" />
-            </div>
-            <div class="gt-panel node-label">
-              <span class="label-text">Profile Hub</span>
-            </div>
-          </div>
-        </div>
-
-        <div class="nav-node node-hover" style="bottom: 20%; left: 10%;" data-modal="experience">
-          <div class="node-content">
-            <div class="small-icon node-icon">
-              <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 100 100">
-                <path d="M20 50 Q20 20 50 20 T80 50 Q80 80 50 80 T20 50" stroke-dasharray="4 2"></path>
-                <circle class="svg-pulse" cx="50" cy="50" r="30" stroke-width="1"></circle>
-              </svg>
-            </div>
-            <div class="gt-panel node-label">
-              <span class="label-text">Experience</span>
-            </div>
-          </div>
-        </div>
-
-        <div class="nav-node node-hover" style="top: 15%; right: 15%;" data-modal="skills">
-          <div class="node-content">
-            <div class="small-icon node-icon license-icon">
-              <svg viewBox="0 0 24 24" fill="currentColor">
-                <path d="M12 2L4 18H20L12 2ZM12 6.5L16.5 16H7.5L12 6.5ZM3 20V22H21V20H3Z"></path>
-              </svg>
-            </div>
-            <div class="gt-panel node-label">
-              <span class="label-text">Technical Skills</span>
-            </div>
-          </div>
-        </div>
-
-        <div class="nav-node node-hover" style="bottom: 15%; right: 20%;" data-modal="showcase">
-          <div class="node-content">
-            <div class="small-icon node-icon showroom-icon">
-              <svg fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24">
-                <rect height="11" rx="1" width="18" x="3" y="10"></rect>
-                <path d="M7 10V6a5 5 0 0110 0v4"></path>
-                <path d="M3 14h18M12 10v11"></path>
-              </svg>
-            </div>
-            <div class="gt-panel node-label">
-              <span class="label-text">Showcase</span>
-            </div>
-          </div>
-        </div>
-
-        <div class="center-grid"></div>
-        <div class="center-grid-2"></div>
-      </div>
-    </main>
 
     <div class="modal-overlay" id="modalOverlay">
       <div class="modal-content" id="modalContent">
@@ -820,162 +579,22 @@ const base = '/IgnacioAlme';
 </Layout>
 
 <script>
-  const modalData: Record<string, { title: string; content: string }> = {
-    profile: {
-      title: 'About Me',
-      content: `
-        <p class="modal-intro">
-          Full Stack Developer with strong experience building scalable web applications using React, Node.js, Express, and relational databases. Skilled in designing robust backend architecture and implementing real-time communication with WebSockets.
-        </p>
-        <div class="modal-contact">
-          <span class="modal-contact-item">English C2</span>
-          <span class="modal-contact-item">UTN - Computer Science Technician</span>
-          <span class="modal-contact-item">Chaco, Argentina</span>
-          <span class="modal-contact-item">+54 9 3624 064243</span>
-          <span class="modal-contact-item">ignacio.yair.almenar@gmail.com</span>
-        </div>
-        <div class="modal-section">
-          <div class="modal-section-title">Languages</div>
-          <ul class="modal-list">
-            <li class="modal-list-item">English (C2 - Fluent)</li>
-            <li class="modal-list-item">Spanish (Native)</li>
-          </ul>
-        </div>
-        <div class="modal-section">
-          <div class="modal-section-title">Education</div>
-          <ul class="modal-list">
-            <li class="modal-list-item">UTN Chaco - Computer Science Technician</li>
-            <li class="modal-list-item">2022 - 2024</li>
-          </ul>
-        </div>
-      `
-    },
-    experience: {
-      title: 'Work History',
-      content: `
-        <div class="modal-job">
-          <div class="modal-job-header">
-            <span class="modal-job-title">Subsecretary of Science & Technology</span>
-            <span class="modal-job-date">Sep 2024 - Present</span>
-          </div>
-          <ul class="modal-job-list">
-            <li class="modal-job-list-item">Designed and developed backend services using Node.js and Express</li>
-            <li class="modal-job-list-item">Built scalable RESTful APIs for AI-driven publishing platform</li>
-            <li class="modal-job-list-item">Implemented WebSockets for real-time bidirectional communication</li>
-            <li class="modal-job-list-item">Integrated Python automation scripts with LLMs</li>
-            <li class="modal-job-list-item">Developed real-time chat system with low-latency delivery</li>
-          </ul>
-        </div>
-        <div class="modal-job">
-          <div class="modal-job-header">
-            <span class="modal-job-title">Shuhariko</span>
-            <span class="modal-job-date">Feb 2023 - May 2025</span>
-          </div>
-          <ul class="modal-job-list">
-            <li class="modal-job-list-item">Developed landing pages and custom CMS solutions using React</li>
-            <li class="modal-job-list-item">Deployed and managed applications using AWS hosting services</li>
-            <li class="modal-job-list-item">Built reusable, strongly-typed components</li>
-            <li class="modal-job-list-item">Focused on frontend performance optimization and UX</li>
-          </ul>
-        </div>
-        <div class="modal-job">
-          <div class="modal-job-header">
-            <span class="modal-job-title">BIOS Informática</span>
-            <span class="modal-job-date">Sep 2025 - Present</span>
-          </div>
-          <ul class="modal-job-list">
-            <li class="modal-job-list-item">Managed and optimized WordPress e-commerce platforms</li>
-            <li class="modal-job-list-item">Implemented backend improvements and performance optimizations</li>
-            <li class="modal-job-list-item">Generated analytics and performance reports</li>
-          </ul>
-        </div>
-      `
-    },
-    skills: {
-      title: 'Technical Skills',
-      content: `
-        <div class="modal-section">
-          <div class="modal-section-title">Frontend</div>
-          <ul class="modal-list">
-            <li class="modal-list-item">React (SPA development)</li>
-            <li class="modal-list-item">Responsive UI Development</li>
-            <li class="modal-list-item">Performance Optimization</li>
-            <li class="modal-list-item">WebSockets Integration</li>
-            <li class="modal-list-item">TypeScript</li>
-          </ul>
-        </div>
-        <div class="modal-section">
-          <div class="modal-section-title">Backend</div>
-          <ul class="modal-list">
-            <li class="modal-list-item">Node.js / Express</li>
-            <li class="modal-list-item">REST API Design</li>
-            <li class="modal-list-item">Prisma ORM</li>
-            <li class="modal-list-item">AWS Cloud Services</li>
-            <li class="modal-list-item">Git Version Control</li>
-          </ul>
-        </div>
-        <div class="modal-section">
-          <div class="modal-section-title">Database</div>
-          <ul class="modal-list">
-            <li class="modal-list-item">MariaDB</li>
-            <li class="modal-list-item">Relational Database Design</li>
-            <li class="modal-list-item">Query Optimization</li>
-          </ul>
-        </div>
-        <div class="modal-section">
-          <div class="modal-section-title">Automation & Tools</div>
-          <ul class="modal-list">
-            <li class="modal-list-item">Python Automation</li>
-            <li class="modal-list-item">n8n Workflow Automation</li>
-            <li class="modal-list-item">WordPress Development</li>
-          </ul>
-        </div>
-      `
-    },
-    showcase: {
-      title: 'Showcase',
-      content: `
-        <p class="modal-intro">
-          Welcome to my project showcase! Here you'll find examples of my work demonstrating full-stack development capabilities.
-        </p>
-        <div class="modal-job">
-          <div class="modal-job-header">
-            <span class="modal-job-title">Coming Soon</span>
-            <span class="modal-job-date">In Development</span>
-          </div>
-          <ul class="modal-job-list">
-            <li class="modal-job-list-item">Real-time collaboration platform</li>
-            <li class="modal-job-list-item">E-commerce solutions</li>
-            <li class="modal-job-list-item">API integrations and automation</li>
-          </ul>
-        </div>
-        <div class="modal-section">
-          <div class="modal-section-title">What I'm Working On</div>
-          <ul class="modal-list">
-            <li class="modal-list-item">AI-powered applications with LLMs</li>
-            <li class="modal-list-item">Real-time dashboards</li>
-            <li class="modal-list-item">Microservices architecture</li>
-          </ul>
-        </div>
-      `
+  // Type declaration for openModal added by CityScene component
+  declare global {
+    interface Window {
+      openModal: (id: string) => void;
     }
-  };
+  }
 
   const modalOverlay = document.getElementById('modalOverlay');
-  const modalBody = document.getElementById('modalBody');
   const modalClose = document.getElementById('modalClose');
 
-  document.querySelectorAll('.nav-node').forEach(node => {
-    node.addEventListener('click', () => {
-      const modalId = node.getAttribute('data-modal');
-      if (modalId && modalData[modalId]) {
-        const data = modalData[modalId];
-        if (modalBody) {
-          modalBody.innerHTML = `<div class="modal-title">${data.title}</div>${data.content}`;
-        }
-        if (modalOverlay) {
-          modalOverlay.classList.add('active');
-        }
+  // Sentinel button click handlers for modals
+  document.querySelectorAll('[data-modal]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const modalId = btn.getAttribute('data-modal');
+      if (modalId && typeof window.openModal === 'function') {
+        window.openModal(modalId);
       }
     });
   });

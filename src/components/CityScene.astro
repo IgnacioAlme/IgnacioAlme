@@ -1,0 +1,547 @@
+<canvas id="city-canvas"></canvas>
+
+<script>
+import * as THREE from 'three';
+import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
+import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
+import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js';
+
+// ============================================
+// CONFIG
+// ============================================
+const CONFIG = {
+  // Camera (polar coordinates)
+  CAMERA_RADIUS: 12,
+  CAMERA_HEIGHT: 16,
+  
+  // Lighting
+  SUN_COLOR: 0xfff8e0,
+  SUN_INTENSITY: 1.8,
+  AMBIENT_INTENSITY: 0.25,
+  
+  // Atmosphere
+  FOG_DENSITY: 0.015,
+  
+  // Bloom
+  BLOOM_THRESHOLD: 0.2,
+  BLOOM_STRENGTH: 0.8,
+  BLOOM_RADIUS: 0.5,
+  
+  // Colors
+  GT_BLUE: 0x25aff4,
+  GT_DARK: 0x0a0c10,
+  
+  // Buildings
+  DECORATION_COUNT: 40,
+  MAP_SIZE: 40,
+  CENTER_CLEAR_RADIUS: 10
+};
+
+// GT Palette for decoration buildings
+const GT_PALETTE = [
+  0x25aff4, // GT Blue
+  0x22c55e, // Green
+  0xef4444, // Red
+  0xeab308, // Yellow
+  0x8b5cf6, // Purple
+  0xf97316, // Orange
+  0x06b6d4, // Cyan
+  0xec4899  // Pink
+];
+
+// Colors: hex values
+const BUILDING_CONFIG = [
+  { id: 'profile', type: 'profile', x: -6, z: -6, label: 'Profile Hub', color: 0x25aff4 },
+  { id: 'experience', type: 'experience', x: -4, z: 6, label: 'Experience', color: 0x22c55e },
+  { id: 'skills', type: 'skills', x: 4, z: 5, label: 'Technical Skills', color: 0xef4444 },
+  { id: 'showcase', type: 'showcase', x: 6, z: -5, label: 'Showcase', color: 0xeab308 }
+];
+
+const DECORATION_COUNT = CONFIG.DECORATION_COUNT;
+const MAP_SIZE = CONFIG.MAP_SIZE;
+const CENTER_CLEAR_RADIUS = CONFIG.CENTER_CLEAR_RADIUS;
+// ============================================
+
+const canvas = document.getElementById('city-canvas');
+if (!canvas) {
+  console.error('Canvas not found');
+  throw new Error('Canvas not found');
+}
+
+canvas.style.position = 'fixed';
+canvas.style.top = '0';
+canvas.style.left = '0';
+canvas.style.width = '100%';
+canvas.style.height = '100%';
+canvas.style.zIndex = '0';
+canvas.style.pointerEvents = 'auto';
+
+const scene = new THREE.Scene();
+scene.background = new THREE.Color(CONFIG.GT_DARK);
+
+// Separate scene for labels (no bloom)
+const labelsScene = new THREE.Scene();
+
+// Add atmospheric fog
+scene.fog = new THREE.FogExp2(CONFIG.GT_DARK, CONFIG.FOG_DENSITY);
+
+// Polar coordinate camera system
+let cameraAngle = 0.3;
+const CAMERA_RADIUS = CONFIG.CAMERA_RADIUS;
+const CAMERA_HEIGHT = CONFIG.CAMERA_HEIGHT;
+
+const camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 1000);
+
+function updateCameraPosition() {
+  camera.position.x = Math.sin(cameraAngle) * CAMERA_RADIUS;
+  camera.position.z = Math.cos(cameraAngle) * CAMERA_RADIUS;
+  camera.position.y = CAMERA_HEIGHT;
+  camera.lookAt(0, 0, 0);
+}
+
+// Initialize camera position
+updateCameraPosition();
+
+const renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
+renderer.setSize(window.innerWidth, window.innerHeight);
+renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+renderer.toneMapping = THREE.ACESFilmicToneMapping;
+renderer.toneMappingExposure = 1.2;
+
+const clickableObjects: THREE.Object3D[] = [];
+
+// ============================================
+// POST-PROCESSING (Bloom)
+// ============================================
+const composer = new EffectComposer(renderer);
+const renderPass = new RenderPass(scene, camera);
+composer.addPass(renderPass);
+
+const bloomPass = new UnrealBloomPass(
+  new THREE.Vector2(window.innerWidth, window.innerHeight),
+  CONFIG.BLOOM_STRENGTH,
+  CONFIG.BLOOM_RADIUS,
+  CONFIG.BLOOM_THRESHOLD
+);
+composer.addPass(bloomPass);
+
+// ============================================
+// LIGHTING
+// ============================================
+// Soft ambient light with low intensity
+const ambientLight = new THREE.AmbientLight(0xffffff, CONFIG.AMBIENT_INTENSITY);
+scene.add(ambientLight);
+
+// Strong sun directional light - warm color, dramatic low angle
+const sunLight = new THREE.DirectionalLight(CONFIG.SUN_COLOR, CONFIG.SUN_INTENSITY);
+sunLight.position.set(40, 60, 20);
+sunLight.castShadow = false;
+scene.add(sunLight);
+
+// Rim light for neon edge glow effect
+const rimLight = new THREE.DirectionalLight(CONFIG.GT_BLUE, 0.8);
+rimLight.position.set(-20, 10, -15);
+scene.add(rimLight);
+
+// Subtle fill light from opposite side
+const fillLight = new THREE.DirectionalLight(0x4a5568, 0.3);
+fillLight.position.set(-30, 20, 30);
+scene.add(fillLight);
+
+// ============================================
+// GROUND
+// ============================================
+const groundGeometry = new THREE.PlaneGeometry(100, 100);
+const groundMaterial = new THREE.MeshStandardMaterial({ 
+  color: 0x1a1f26, 
+  roughness: 0.4, 
+  metalness: 0.6 
+});
+const ground = new THREE.Mesh(groundGeometry, groundMaterial);
+ground.rotation.x = -Math.PI / 2;
+ground.position.y = -0.01;
+scene.add(ground);
+
+// ============================================
+// GRID - Brighter GT-style
+// ============================================
+const gridHelper = new THREE.GridHelper(100, 20, CONFIG.GT_BLUE, 0x1a1f26);
+if (gridHelper.material instanceof THREE.Material) {
+  (gridHelper.material as THREE.LineBasicMaterial).opacity = 0.6;
+  (gridHelper.material as THREE.LineBasicMaterial).transparent = true;
+}
+scene.add(gridHelper);
+
+// ============================================
+// ROAD LINES (Glowing paths)
+// ============================================
+function createRoadLines() {
+  const roadMaterial = new THREE.MeshBasicMaterial({ 
+    color: CONFIG.GT_BLUE, 
+    transparent: true, 
+    opacity: 0.8 
+  });
+  
+  // Create main cross roads
+  const roadH = new THREE.Mesh(
+    new THREE.PlaneGeometry(60, 0.3),
+    roadMaterial
+  );
+  roadH.rotation.x = -Math.PI / 2;
+  roadH.position.y = 0.01;
+  scene.add(roadH);
+  
+  const roadV = new THREE.Mesh(
+    new THREE.PlaneGeometry(0.3, 60),
+    roadMaterial
+  );
+  roadV.rotation.x = -Math.PI / 2;
+  roadV.position.y = 0.01;
+  scene.add(roadV);
+  
+  // Create diagonal accent lines
+  const diagMaterial = new THREE.MeshBasicMaterial({ 
+    color: 0x22c55e, 
+    transparent: true, 
+    opacity: 0.5 
+  });
+  
+  for (let i = -2; i <= 2; i++) {
+    if (i === 0) continue;
+    const diagRoad = new THREE.Mesh(
+      new THREE.PlaneGeometry(0.15, 50),
+      diagMaterial
+    );
+    diagRoad.rotation.x = -Math.PI / 2;
+    diagRoad.rotation.z = Math.PI / 4;
+    diagRoad.position.y = 0.01;
+    diagRoad.position.x = i * 8;
+    scene.add(diagRoad);
+  }
+}
+
+createRoadLines();
+
+// ============================================
+// BUILDING CREATION
+// ============================================
+function createBuildingGroup(x: number, z: number, type: string, modalId: string, color: number) {
+  const group = new THREE.Group();
+  group.position.set(x, 0, z);
+  group.userData = { modal: modalId };
+
+  const materialAccent = new THREE.MeshStandardMaterial({ 
+    color: color, 
+    roughness: 0.3, 
+    metalness: 0.5, 
+    emissive: color, 
+    emissiveIntensity: 0.4 
+  });
+
+  if (type === 'profile') {
+    // Cylinder body
+    const cylinder = new THREE.Mesh(new THREE.CylinderGeometry(0.5, 0.5, 5, 16), materialAccent);
+    cylinder.position.y = 2.5;
+    group.add(cylinder);
+    // Torus halo
+    const torus = new THREE.Mesh(new THREE.TorusGeometry(1, 0.15, 16, 100), materialAccent);
+    torus.position.y = 5.3;
+    group.add(torus);
+    clickableObjects.push(cylinder, torus);
+  } else if (type === 'experience') {
+    // Main box body
+    const box = new THREE.Mesh(new THREE.BoxGeometry(2, 4, 2), materialAccent);
+    box.position.y = 2;
+    group.add(box);
+    // Cylinder mast
+    const mast = new THREE.Mesh(new THREE.CylinderGeometry(0.2, 0.2, 3, 8), materialAccent);
+    mast.position.set(0, 5.5, 0);
+    group.add(mast);
+    clickableObjects.push(box, mast);
+  } else if (type === 'skills') {
+    // Cone body
+    const cone = new THREE.Mesh(new THREE.ConeGeometry(0.75, 4, 4), materialAccent);
+    cone.position.y = 2;
+    group.add(cone);
+    // Top accent
+    const coneTop = new THREE.Mesh(new THREE.CylinderGeometry(0.1, 0.1, 0.5, 8), materialAccent);
+    coneTop.position.y = 4.5;
+    group.add(coneTop);
+    clickableObjects.push(cone, coneTop);
+  } else if (type === 'showcase') {
+    // Main body
+    const body = new THREE.Mesh(new THREE.BoxGeometry(2, 3, 2), materialAccent);
+    body.position.y = 1.5;
+    group.add(body);
+    // Arch accent
+    const arch = new THREE.Mesh(new THREE.BoxGeometry(1.8, 1.2, 0.2), materialAccent);
+    arch.position.set(0, 3.6, 0);
+    group.add(arch);
+    clickableObjects.push(body, arch);
+  }
+
+  scene.add(group);
+}
+
+// ============================================
+// DECORATION BUILDINGS WITH EMISSIVE WINDOWS
+// ============================================
+function createDecorationBuilding(x: number, z: number) {
+  const height = Math.random() * 4 + 2;
+  const width = Math.random() * 1.5 + 0.8;
+  const depth = Math.random() * 1.5 + 0.8;
+  
+  // Random accent color from GT palette
+  const accentColor = GT_PALETTE[Math.floor(Math.random() * GT_PALETTE.length)];
+  
+  const group = new THREE.Group();
+  group.position.set(x, 0, z);
+  
+  // Main building body
+  const materialBase = new THREE.MeshStandardMaterial({ 
+    color: CONFIG.GT_DARK, 
+    roughness: 0.7, 
+    metalness: 0.2 
+  });
+  const building = new THREE.Mesh(new THREE.BoxGeometry(width, height, depth), materialBase);
+  building.position.y = height / 2;
+  group.add(building);
+  
+  // Subtle accent band at base
+  const materialAccent = new THREE.MeshStandardMaterial({ 
+    color: accentColor, 
+    roughness: 0.4, 
+    metalness: 0.3, 
+    emissive: accentColor, 
+    emissiveIntensity: 0.15 
+  });
+  const baseBand = new THREE.Mesh(
+    new THREE.BoxGeometry(width + 0.05, 0.2, depth + 0.05),
+    materialAccent
+  );
+  baseBand.position.y = 0.1;
+  group.add(baseBand);
+  
+  // Emissive window patterns
+  const windowRows = Math.floor(height / 1.2);
+  const windowCols = Math.floor(width / 0.6);
+  
+  for (let row = 0; row < windowRows; row++) {
+    for (let col = 0; col < windowCols; col++) {
+      // Random chance for lit window
+      if (Math.random() > 0.4) {
+        const windowMat = new THREE.MeshBasicMaterial({ 
+          color: Math.random() > 0.5 ? 0xfff5e0 : 0x88ccff,
+          transparent: true,
+          opacity: 0.3 + Math.random() * 0.4
+        });
+        const windowMesh = new THREE.Mesh(
+          new THREE.PlaneGeometry(0.2, 0.3),
+          windowMat
+        );
+        
+        // Position on front face
+        const wx = (col - (windowCols - 1) / 2) * 0.5;
+        const wy = row * 1.1 + 0.8;
+        windowMesh.position.set(wx, wy, depth / 2 + 0.01);
+        group.add(windowMesh);
+      }
+    }
+  }
+  
+  scene.add(group);
+}
+
+// Create landmark buildings from config
+BUILDING_CONFIG.forEach(b => {
+  createBuildingGroup(b.x, b.z, b.type, b.id, b.color || CONFIG.GT_BLUE);
+});
+
+// Create decoration buildings
+for (let i = 0; i < DECORATION_COUNT; i++) {
+  const x = (Math.random() - 0.5) * MAP_SIZE;
+  const z = (Math.random() - 0.5) * MAP_SIZE;
+  if (Math.sqrt(x * x + z * z) > CENTER_CLEAR_RADIUS) {
+    createDecorationBuilding(x, z);
+  }
+}
+
+// ============================================
+// LABELS (rendered in separate scene without bloom)
+// ============================================
+function createLabel(text: string, x: number, z: number, yOffset: number) {
+  const labelCanvas = document.createElement('canvas');
+  const ctx = labelCanvas.getContext('2d');
+  labelCanvas.width = 512;
+  labelCanvas.height = 128;
+  if (ctx) {
+    ctx.fillStyle = 'rgba(10, 12, 16, 0.8)';
+    ctx.fillRect(0, 0, 512, 128);
+    ctx.font = 'bold 48px Space Grotesk, sans-serif';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillStyle = '#ffffff';
+    ctx.shadowColor = '#25aff4';
+    ctx.shadowBlur = 15;
+    ctx.fillText(text, 256, 64);
+  }
+  const sprite = new THREE.Sprite(new THREE.SpriteMaterial({ 
+    map: new THREE.CanvasTexture(labelCanvas),
+    transparent: true
+  }));
+  sprite.position.set(x, yOffset, z);
+  sprite.scale.set(4, 1, 1);
+  labelsScene.add(sprite);
+}
+
+createLabel('Profile Hub', -6, -6, 6.8);
+createLabel('Experience', -4, 6, 6.5);
+createLabel('Technical Skills', 4, 5, 6.5);
+createLabel('Showcase', 6, -5, 5.5);
+
+// ============================================
+// SENTINEL POSITIONING
+// ============================================
+const sentinelContainer = document.createElement('div');
+sentinelContainer.style.cssText = 'position:absolute;opacity:0;pointer-events:none;top:0;left:0;width:100%;height:100%';
+document.body.appendChild(sentinelContainer);
+
+const sentinelPositions = [
+  { modal: 'profile', x: -6, z: -6 },
+  { modal: 'experience', x: -4, z: 6 },
+  { modal: 'skills', x: 4, z: 5 },
+  { modal: 'showcase', x: 6, z: -5 }
+];
+
+sentinelPositions.forEach(pos => {
+  const btn = document.createElement('button');
+  btn.dataset.modal = pos.modal;
+  btn.style.cssText = 'position:absolute;visibility:hidden;pointer-events:none';
+  sentinelContainer.appendChild(btn);
+});
+
+const raycaster = new THREE.Raycaster();
+const mouse = new THREE.Vector2();
+
+function updateSentinelPositions() {
+  sentinelPositions.forEach(pos => {
+    const vector = new THREE.Vector3(pos.x, 2, pos.z);
+    vector.project(camera);
+    const x = (vector.x * 0.5 + 0.5) * window.innerWidth;
+    const y = (-(vector.y * 0.5) + 0.5) * window.innerHeight;
+    const btn = sentinelContainer.querySelector(`[data-modal="${pos.modal}"]`) as HTMLElement | null;
+    if (btn) {
+      btn.style.left = `${x}px`;
+      btn.style.top = `${y}px`;
+    }
+  });
+}
+
+// ============================================
+// EVENT HANDLERS
+// ============================================
+canvas.addEventListener('click', (event) => {
+  mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
+  mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
+  raycaster.setFromCamera(mouse, camera);
+  const intersects = raycaster.intersectObjects(clickableObjects);
+  if (intersects.length > 0) {
+    const target = intersects[0].object;
+    if (target.parent && target.parent.userData && target.parent.userData.modal) {
+      const modalId = target.parent.userData.modal;
+      const sentinel = sentinelContainer.querySelector(`[data-modal="${modalId}"]`) as HTMLButtonElement | null;
+      if (sentinel) sentinel.click();
+    }
+  }
+});
+
+let isMouseDown = false;
+
+canvas.addEventListener('mousedown', () => { isMouseDown = true; });
+canvas.addEventListener('mouseup', () => { isMouseDown = false; });
+canvas.addEventListener('mouseleave', () => { isMouseDown = false; });
+canvas.addEventListener('mousemove', (e) => {
+  if (isMouseDown) {
+    // Only rotate - use movementX for delta
+    cameraAngle -= e.movementX * 0.005;
+    updateCameraPosition();
+    updateSentinelPositions();
+  }
+});
+// No zoom allowed - camera orbits at fixed radius
+
+window.addEventListener('resize', () => {
+  camera.aspect = window.innerWidth / window.innerHeight;
+  camera.updateProjectionMatrix();
+  renderer.setSize(window.innerWidth, window.innerHeight);
+  composer.setSize(window.innerWidth, window.innerHeight);
+});
+
+// ============================================
+// MODAL OPEN FUNCTION
+// ============================================
+(window.openModal = function(id: string) {
+  const modalData: Record<string, { title: string; content: string }> = {
+    profile: { 
+      title: 'About Me', 
+      content: '<p class="modal-intro">Full Stack Developer with strong experience building scalable web applications using React, Node.js, Express, and relational databases. Skilled in designing robust backend architecture and implementing real-time communication with WebSockets.</p><div class="modal-contact"><span class="modal-contact-item">English C2</span><span class="modal-contact-item">UTN - Computer Science Technician</span><span class="modal-contact-item">Chaco, Argentina</span><span class="modal-contact-item">+54 9 3624 064243</span><span class="modal-contact-item">ignacio.yair.almenar@gmail.com</span></div><div class="modal-section"><div class="modal-section-title">Languages</div><ul class="modal-list"><li class="modal-list-item">English (C2 - Fluent)</li><li class="modal-list-item">Spanish (Native)</li></ul></div><div class="modal-section"><div class="modal-section-title">Education</div><ul class="modal-list"><li class="modal-list-item">UTN Chaco - Computer Science Technician</li><li class="modal-list-item">2022 - 2024</li></ul></div>'
+    },
+    experience: { 
+      title: 'Work History', 
+      content: '<div class="modal-job"><div class="modal-job-header"><span class="modal-job-title">Subsecretary of Science & Technology</span><span class="modal-job-date">Sep 2024 - Present</span></div><ul class="modal-job-list"><li class="modal-job-list-item">Designed and developed backend services using Node.js and Express</li><li class="modal-job-list-item">Built scalable RESTful APIs for AI-driven publishing platform</li><li class="modal-job-list-item">Implemented WebSockets for real-time bidirectional communication</li><li class="modal-job-list-item">Integrated Python automation scripts with LLMs</li><li class="modal-job-list-item">Developed real-time chat system with low-latency delivery</li></ul></div><div class="modal-job"><div class="modal-job-header"><span class="modal-job-title">Shuhariko</span><span class="modal-job-date">Feb 2023 - May 2025</span></div><ul class="modal-job-list"><li class="modal-job-list-item">Developed landing pages and custom CMS solutions using React</li><li class="modal-job-list-item">Deployed and managed applications using AWS hosting services</li><li class="modal-job-list-item">Built reusable, strongly-typed components</li><li class="modal-job-list-item">Focused on frontend performance optimization and UX</li></ul></div><div class="modal-job"><div class="modal-job-header"><span class="modal-job-title">BIOS Informática</span><span class="modal-job-date">Sep 2025 - Present</span></div><ul class="modal-job-list"><li class="modal-job-list-item">Managed and optimized WordPress e-commerce platforms</li><li class="modal-job-list-item">Implemented backend improvements and performance optimizations</li><li class="modal-job-list-item">Generated analytics and performance reports</li></ul></div>'
+    },
+    skills: { 
+      title: 'Technical Skills', 
+      content: '<div class="modal-section"><div class="modal-section-title">Frontend</div><ul class="modal-list"><li class="modal-list-item">React (SPA development)</li><li class="modal-list-item">Responsive UI Development</li><li class="modal-list-item">Performance Optimization</li><li class="modal-list-item">WebSockets Integration</li><li class="modal-list-item">TypeScript</li></ul></div><div class="modal-section"><div class="modal-section-title">Backend</div><ul class="modal-list"><li class="modal-list-item">Node.js / Express</li><li class="modal-list-item">REST API Design</li><li class="modal-list-item">Prisma ORM</li><li class="modal-list-item">AWS Cloud Services</li><li class="modal-list-item">Git Version Control</li></ul></div><div class="modal-section"><div class="modal-section-title">Database</div><ul class="modal-list"><li class="modal-list-item">MariaDB</li><li class="modal-list-item">Relational Database Design</li><li class="modal-list-item">Query Optimization</li></ul></div><div class="modal-section"><div class="modal-section-title">Automation & Tools</div><ul class="modal-list"><li class="modal-list-item">Python Automation</li><li class="modal-list-item">n8n Workflow Automation</li><li class="modal-list-item">WordPress Development</li></ul></div>'
+    },
+    showcase: { 
+      title: 'Showcase', 
+      content: '<p class="modal-intro">Welcome to my project showcase! Here you will find examples of my work demonstrating full-stack development capabilities.</p><div class="modal-job"><div class="modal-job-header"><span class="modal-job-title">Coming Soon</span><span class="modal-job-date">In Development</span></div><ul class="modal-job-list"><li class="modal-job-list-item">Real-time collaboration platform</li><li class="modal-job-list-item">E-commerce solutions</li><li class="modal-job-list-item">API integrations and automation</li></ul></div><div class="modal-section"><div class="modal-section-title">What I am Working On</div><ul class="modal-list"><li class="modal-list-item">AI-powered applications with LLMs</li><li class="modal-list-item">Real-time dashboards</li><li class="modal-list-item">Microservices architecture</li></ul></div>'
+    }
+  };
+  const data = modalData[id as keyof typeof modalData];
+  if (data) {
+    const modalBody = document.getElementById('modalBody');
+    const modalOverlay = document.getElementById('modalOverlay');
+    if (modalBody) modalBody.innerHTML = '<div class="modal-title">' + data.title + '</div>' + data.content;
+    if (modalOverlay) modalOverlay.classList.add('active');
+  }
+});
+
+updateSentinelPositions();
+
+// ============================================
+// ANIMATION LOOP
+// ============================================
+function animate() {
+  requestAnimationFrame(animate);
+  
+  if (!isMouseDown) {
+    // Slow, elegant rotation using polar coordinates
+    cameraAngle += 0.0003;
+    updateCameraPosition();
+    updateSentinelPositions();
+  }
+  
+  // Render main scene with bloom, then labels without bloom
+  renderer.autoClear = false;
+  composer.render();
+  renderer.clearDepth();
+  renderer.render(labelsScene, camera);
+}
+
+animate();
+
+console.log('CityScene initialized successfully');
+</script>
+
+<style>
+#city-canvas {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  z-index: -1;
+}
+</style>
