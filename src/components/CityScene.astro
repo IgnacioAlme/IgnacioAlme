@@ -347,32 +347,38 @@ function createDecorationBuilding(x: number, z: number) {
   baseBand.position.y = 0.1;
   group.add(baseBand);
   
-  // Emissive window patterns
+  // Emissive window patterns on all 4 sides
   const windowRows = Math.floor(height / 1.2);
-  const windowCols = Math.floor(width / 0.6);
-  
-  for (let row = 0; row < windowRows; row++) {
-    for (let col = 0; col < windowCols; col++) {
-      // Random chance for lit window
-      if (Math.random() > 0.4) {
-        const windowMat = new THREE.MeshBasicMaterial({ 
-          color: Math.random() > 0.5 ? 0xfff5e0 : 0x88ccff,
-          transparent: true,
-          opacity: 0.3 + Math.random() * 0.4
-        });
-        const windowMesh = new THREE.Mesh(
-          new THREE.PlaneGeometry(0.2, 0.3),
-          windowMat
-        );
-        
-        // Position on front face
-        const wx = (col - (windowCols - 1) / 2) * 0.5;
-        const wy = row * 1.1 + 0.8;
-        windowMesh.position.set(wx, wy, depth / 2 + 0.01);
-        group.add(windowMesh);
+  const windowColsX = Math.floor(width / 0.6);
+  const windowColsZ = Math.floor(depth / 0.6);
+
+  const addWindowToFace = (faceX: number, faceZ: number, rotY: number, cols: number, isXFace: boolean) => {
+    for (let row = 0; row < windowRows; row++) {
+      for (let col = 0; col < cols; col++) {
+        if (Math.random() > 0.4) {
+          const windowMat = new THREE.MeshBasicMaterial({
+            color: Math.random() > 0.5 ? 0xfff5e0 : 0x88ccff,
+            transparent: true,
+            opacity: 0.3 + Math.random() * 0.4
+          });
+          const windowMesh = new THREE.Mesh(
+            new THREE.PlaneGeometry(0.2, 0.3),
+            windowMat
+          );
+          windowMesh.rotation.y = rotY;
+          const offsetX = isXFace ? 0 : (col - (cols - 1) / 2) * 0.5;
+          const offsetZ = isXFace ? (col - (cols - 1) / 2) * 0.5 : 0;
+          windowMesh.position.set(faceX + offsetX, row * 1.1 + 0.8, faceZ + offsetZ);
+          group.add(windowMesh);
+        }
       }
     }
-  }
+  };
+
+  addWindowToFace(0, depth / 2 + 0.01, 0, windowColsX, false);
+  addWindowToFace(0, -depth / 2 - 0.01, Math.PI, windowColsX, false);
+  addWindowToFace(width / 2 + 0.01, 0, Math.PI / 2, windowColsZ, true);
+  addWindowToFace(-width / 2 - 0.01, 0, -Math.PI / 2, windowColsZ, true);
   
   scene.add(group);
 }
@@ -503,6 +509,8 @@ canvas.addEventListener('click', (event) => {
 });
 
 let isMouseDown = false;
+let autoRotate = true;
+let bloomEnabled = true;
 
 canvas.addEventListener('mousedown', () => { isMouseDown = true; });
 canvas.addEventListener('mouseup', () => { isMouseDown = false; });
@@ -544,6 +552,14 @@ window.addEventListener('resize', () => {
     showcase: { 
       title: 'Showcase', 
       content: '<p class="modal-intro">Welcome to my project showcase! Here you will find examples of my work demonstrating full-stack development capabilities.</p><div class="modal-job"><div class="modal-job-header"><span class="modal-job-title">Coming Soon</span><span class="modal-job-date">In Development</span></div><ul class="modal-job-list"><li class="modal-job-list-item">Real-time collaboration platform</li><li class="modal-job-list-item">E-commerce solutions</li><li class="modal-job-list-item">API integrations and automation</li></ul></div><div class="modal-section"><div class="modal-section-title">What I am Working On</div><ul class="modal-list"><li class="modal-list-item">AI-powered applications with LLMs</li><li class="modal-list-item">Real-time dashboards</li><li class="modal-list-item">Microservices architecture</li></ul></div>'
+    },
+    links: { 
+      title: 'My Links', 
+      content: '<div class="modal-section"><div class="modal-section-title">Connect with me</div><ul class="modal-list"><li class="modal-list-item"><a href="#" target="_blank" class="modal-link">GitHub - Coming soon</a></li><li class="modal-list-item"><a href="#" target="_blank" class="modal-link">LinkedIn - Coming soon</a></li></ul></div>'
+    },
+    options: { 
+      title: 'Options', 
+      content: '<div class="modal-section"><div class="modal-section-title">Settings</div><div class="modal-toggle"><label class="toggle-label active"><input type="checkbox" id="toggleAutoRotate" checked onchange="window.toggleAutoRotate !== undefined && (document.getElementById(\'toggleAutoRotate\').closest(\'.toggle-label\').classList.toggle(\'active\', window.toggleAutoRotate()));\" class="toggle-input"><span class="toggle-text">Automatic Camera Rotation</span></label></div><div class="modal-toggle"><label class="toggle-label active"><input type="checkbox" id="toggleBloom" checked onchange="window.toggleBloom !== undefined && (document.getElementById(\'toggleBloom\').closest(\'.toggle-label\').classList.toggle(\'active\', window.toggleBloom()));\" class="toggle-input"><span class="toggle-text">Bloom Effect</span></label></div></div>'
     }
   };
   const data = modalData[id as keyof typeof modalData];
@@ -563,14 +579,13 @@ updateSentinelPositions();
 function animate() {
   requestAnimationFrame(animate);
   
-  if (!isMouseDown) {
-    // Slow, elegant rotation using polar coordinates
+  if (autoRotate && !isMouseDown) {
     cameraAngle += 0.0003;
     updateCameraPosition();
     updateSentinelPositions();
   }
   
-  // Render main scene with bloom, then labels without bloom
+  bloomPass.strength = bloomEnabled ? CONFIG.BLOOM_STRENGTH : 0;
   renderer.autoClear = false;
   composer.render();
   renderer.clearDepth();
@@ -578,6 +593,23 @@ function animate() {
 }
 
 animate();
+
+// ============================================
+// TOGGLE FUNCTIONS (exposed to window)
+// ============================================
+(window as unknown as Record<string, unknown>).toggleAutoRotate = () => {
+  autoRotate = !autoRotate;
+  const checkbox = document.getElementById('toggleAutoRotate') as HTMLInputElement | null;
+  if (checkbox) checkbox.checked = autoRotate;
+  return autoRotate;
+};
+
+(window as unknown as Record<string, unknown>).toggleBloom = () => {
+  bloomEnabled = !bloomEnabled;
+  const checkbox = document.getElementById('toggleBloom') as HTMLInputElement | null;
+  if (checkbox) checkbox.checked = bloomEnabled;
+  return bloomEnabled;
+};
 
 console.log('CityScene initialized successfully');
 </script>
