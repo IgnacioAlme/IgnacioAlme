@@ -497,7 +497,7 @@ canvas.addEventListener('click', (event) => {
     const userData = target.userData as Record<string, unknown>;
     if (userData.download) {
       const link = document.createElement('a');
-      link.href = `/docs/${userData.download}`;
+      link.href = `${import.meta.env.BASE_URL}docs/${userData.download}`;
       link.download = userData.download as string;
       link.click();
     } else if (userData.modal) {
@@ -564,9 +564,11 @@ window.addEventListener('resize', () => {
   };
   const data = modalData[id as keyof typeof modalData];
   if (data) {
+    const modalTitle = document.getElementById('modalTitle');
     const modalBody = document.getElementById('modalBody');
     const modalOverlay = document.getElementById('modalOverlay');
-    if (modalBody) modalBody.innerHTML = '<div class="modal-title">' + data.title + '</div>' + data.content;
+    if (modalTitle) modalTitle.textContent = data.title;
+    if (modalBody) modalBody.innerHTML = data.content;
     if (modalOverlay) modalOverlay.classList.add('active');
   }
 });
