@@ -34,7 +34,7 @@ const CONFIG = {
   // Buildings
   DECORATION_COUNT: 40,
   MAP_SIZE: 40,
-  CENTER_CLEAR_RADIUS: 10
+  CENTER_CLEAR_RADIUS: 12
 };
 
 // GT Palette for decoration buildings
@@ -51,10 +51,11 @@ const GT_PALETTE = [
 
 // Colors: hex values
 const BUILDING_CONFIG = [
-  { id: 'profile', type: 'profile', x: -6, z: -6, label: 'Profile Hub', color: 0x25aff4 },
-  { id: 'experience', type: 'experience', x: -4, z: 6, label: 'Experience', color: 0x22c55e },
-  { id: 'skills', type: 'skills', x: 4, z: 5, label: 'Technical Skills', color: 0xef4444 },
-  { id: 'showcase', type: 'showcase', x: 6, z: -5, label: 'Showcase', color: 0xeab308 }
+  { id: 'profile', type: 'profile', x: 0, z: -8, label: 'Profile Hub', color: 0x25aff4 },
+  { id: 'experience', type: 'experience', x: 7.6, z: -2.5, label: 'Experience', color: 0x22c55e },
+  { id: 'skills', type: 'skills', x: 4.7, z: 6.5, label: 'Technical Skills', color: 0xef4444 },
+  { id: 'showcase', type: 'showcase', x: -4.7, z: 6.5, label: 'Showcase', color: 0xeab308 },
+  { id: 'resume', type: 'resume', x: -7.6, z: -2.5, label: 'Resume', color: 0x8b5cf6, download: 'Ignacio Almenar CV dev - ENG-3.pdf' }
 ];
 
 const DECORATION_COUNT = CONFIG.DECORATION_COUNT;
@@ -225,10 +226,11 @@ createRoadLines();
 // ============================================
 // BUILDING CREATION
 // ============================================
-function createBuildingGroup(x: number, z: number, type: string, modalId: string, color: number) {
+function createBuildingGroup(x: number, z: number, type: string, modalId: string, color: number, download?: string) {
   const group = new THREE.Group();
   group.position.set(x, 0, z);
   group.userData = { modal: modalId };
+  if (download) group.userData.download = download;
 
   const materialAccent = new THREE.MeshStandardMaterial({ 
     color: color, 
@@ -242,42 +244,65 @@ function createBuildingGroup(x: number, z: number, type: string, modalId: string
     // Cylinder body
     const cylinder = new THREE.Mesh(new THREE.CylinderGeometry(0.5, 0.5, 5, 16), materialAccent);
     cylinder.position.y = 2.5;
+    cylinder.userData.modal = modalId;
     group.add(cylinder);
     // Torus halo
     const torus = new THREE.Mesh(new THREE.TorusGeometry(1, 0.15, 16, 100), materialAccent);
     torus.position.y = 5.3;
+    torus.userData.modal = modalId;
     group.add(torus);
     clickableObjects.push(cylinder, torus);
   } else if (type === 'experience') {
     // Main box body
     const box = new THREE.Mesh(new THREE.BoxGeometry(2, 4, 2), materialAccent);
     box.position.y = 2;
+    box.userData.modal = modalId;
     group.add(box);
     // Cylinder mast
     const mast = new THREE.Mesh(new THREE.CylinderGeometry(0.2, 0.2, 3, 8), materialAccent);
     mast.position.set(0, 5.5, 0);
+    mast.userData.modal = modalId;
     group.add(mast);
     clickableObjects.push(box, mast);
   } else if (type === 'skills') {
     // Cone body
     const cone = new THREE.Mesh(new THREE.ConeGeometry(0.75, 4, 4), materialAccent);
     cone.position.y = 2;
+    cone.userData.modal = modalId;
     group.add(cone);
     // Top accent
     const coneTop = new THREE.Mesh(new THREE.CylinderGeometry(0.1, 0.1, 0.5, 8), materialAccent);
     coneTop.position.y = 4.5;
+    coneTop.userData.modal = modalId;
     group.add(coneTop);
     clickableObjects.push(cone, coneTop);
   } else if (type === 'showcase') {
     // Main body
     const body = new THREE.Mesh(new THREE.BoxGeometry(2, 3, 2), materialAccent);
     body.position.y = 1.5;
+    body.userData.modal = modalId;
     group.add(body);
     // Arch accent
     const arch = new THREE.Mesh(new THREE.BoxGeometry(1.8, 1.2, 0.2), materialAccent);
     arch.position.set(0, 3.6, 0);
+    arch.userData.modal = modalId;
     group.add(arch);
     clickableObjects.push(body, arch);
+  } else if (type === 'resume') {
+    // Sphere - unique rounded shape
+    const sphere = new THREE.Mesh(new THREE.SphereGeometry(1, 32, 32), materialAccent);
+    sphere.position.y = 2.5;
+    sphere.userData.modal = modalId;
+    if (download) sphere.userData.download = download;
+    group.add(sphere);
+    // Orbiting ring
+    const ring = new THREE.Mesh(new THREE.TorusGeometry(1.5, 0.08, 16, 50), materialAccent);
+    ring.position.y = 2.5;
+    ring.rotation.x = Math.PI / 4;
+    ring.userData.modal = modalId;
+    if (download) ring.userData.download = download;
+    group.add(ring);
+    clickableObjects.push(sphere, ring);
   }
 
   scene.add(group);
@@ -354,7 +379,7 @@ function createDecorationBuilding(x: number, z: number) {
 
 // Create landmark buildings from config
 BUILDING_CONFIG.forEach(b => {
-  createBuildingGroup(b.x, b.z, b.type, b.id, b.color || CONFIG.GT_BLUE);
+  createBuildingGroup(b.x, b.z, b.type, b.id, b.color || CONFIG.GT_BLUE, b.download);
 });
 
 // Create decoration buildings
@@ -369,7 +394,7 @@ for (let i = 0; i < DECORATION_COUNT; i++) {
 // ============================================
 // LABELS (rendered in separate scene without bloom)
 // ============================================
-function createLabel(text: string, x: number, z: number, yOffset: number) {
+function createLabel(text: string, x: number, z: number, yOffset: number, modalId?: string, download?: string): THREE.Sprite {
   const labelCanvas = document.createElement('canvas');
   const ctx = labelCanvas.getContext('2d');
   labelCanvas.width = 512;
@@ -391,13 +416,28 @@ function createLabel(text: string, x: number, z: number, yOffset: number) {
   }));
   sprite.position.set(x, yOffset, z);
   sprite.scale.set(4, 1, 1);
+  if (modalId) sprite.userData.modal = modalId;
+  if (download) sprite.userData.download = download;
   labelsScene.add(sprite);
+
+  const hitbox = new THREE.Mesh(
+    new THREE.PlaneGeometry(4.5, 1.2),
+    new THREE.MeshBasicMaterial({ visible: false })
+  );
+  hitbox.position.set(x, yOffset, z);
+  hitbox.userData.modal = modalId;
+  if (download) hitbox.userData.download = download;
+  scene.add(hitbox);
+  clickableObjects.push(hitbox);
+
+  return sprite;
 }
 
-createLabel('Profile Hub', -6, -6, 6.8);
-createLabel('Experience', -4, 6, 6.5);
-createLabel('Technical Skills', 4, 5, 6.5);
-createLabel('Showcase', 6, -5, 5.5);
+createLabel('Profile Hub', 0, -9, 5.5, 'profile');
+createLabel('Experience', 8.5, -2.5, 5.5, 'experience');
+createLabel('Technical Skills', 5, 7.5, 5.5, 'skills');
+createLabel('Showcase', -5, 7.5, 5.5, 'showcase');
+createLabel('Resume', -8.5, -2.5, 5.5, 'resume', 'Ignacio Almenar CV dev - ENG-3.pdf');
 
 // ============================================
 // SENTINEL POSITIONING
@@ -407,10 +447,11 @@ sentinelContainer.style.cssText = 'position:absolute;opacity:0;pointer-events:no
 document.body.appendChild(sentinelContainer);
 
 const sentinelPositions = [
-  { modal: 'profile', x: -6, z: -6 },
-  { modal: 'experience', x: -4, z: 6 },
-  { modal: 'skills', x: 4, z: 5 },
-  { modal: 'showcase', x: 6, z: -5 }
+  { modal: 'profile', x: 0, z: -8 },
+  { modal: 'experience', x: 7.6, z: -2.5 },
+  { modal: 'skills', x: 4.7, z: 6.5 },
+  { modal: 'showcase', x: -4.7, z: 6.5 },
+  { modal: 'resume', x: -7.6, z: -2.5, download: 'Ignacio Almenar CV dev - ENG-3.pdf' }
 ];
 
 sentinelPositions.forEach(pos => {
@@ -447,8 +488,14 @@ canvas.addEventListener('click', (event) => {
   const intersects = raycaster.intersectObjects(clickableObjects);
   if (intersects.length > 0) {
     const target = intersects[0].object;
-    if (target.parent && target.parent.userData && target.parent.userData.modal) {
-      const modalId = target.parent.userData.modal;
+    const userData = target.userData as Record<string, unknown>;
+    if (userData.download) {
+      const link = document.createElement('a');
+      link.href = `/docs/${userData.download}`;
+      link.download = userData.download as string;
+      link.click();
+    } else if (userData.modal) {
+      const modalId = userData.modal as string;
       const sentinel = sentinelContainer.querySelector(`[data-modal="${modalId}"]`) as HTMLButtonElement | null;
       if (sentinel) sentinel.click();
     }
@@ -484,7 +531,7 @@ window.addEventListener('resize', () => {
   const modalData: Record<string, { title: string; content: string }> = {
     profile: { 
       title: 'About Me', 
-      content: '<p class="modal-intro">Full Stack Developer with strong experience building scalable web applications using React, Node.js, Express, and relational databases. Skilled in designing robust backend architecture and implementing real-time communication with WebSockets.</p><div class="modal-contact"><span class="modal-contact-item">English C2</span><span class="modal-contact-item">UTN - Computer Science Technician</span><span class="modal-contact-item">Chaco, Argentina</span><span class="modal-contact-item">+54 9 3624 064243</span><span class="modal-contact-item">ignacio.yair.almenar@gmail.com</span></div><div class="modal-section"><div class="modal-section-title">Languages</div><ul class="modal-list"><li class="modal-list-item">English (C2 - Fluent)</li><li class="modal-list-item">Spanish (Native)</li></ul></div><div class="modal-section"><div class="modal-section-title">Education</div><ul class="modal-list"><li class="modal-list-item">UTN Chaco - Computer Science Technician</li><li class="modal-list-item">2022 - 2024</li></ul></div>'
+      content: '<p class="modal-intro">Full Stack Developer with strong experience building scalable web applications using React, Node.js, Express, and relational databases. Skilled in designing robust backend architecture and implementing real-time communication with WebSockets.</p><div class="modal-contact"><span class="modal-contact-item">English C1</span><span class="modal-contact-item">UTN - Computer Science Technician</span><span class="modal-contact-item">Chaco, Argentina</span><span class="modal-contact-item">+54 9 3624 064243</span><span class="modal-contact-item">ignacio.yair.almenar@gmail.com</span></div><div class="modal-section"><div class="modal-section-title">Languages</div><ul class="modal-list"><li class="modal-list-item">English (C1 - Fluent)</li><li class="modal-list-item">Spanish (Native)</li></ul></div><div class="modal-section"><div class="modal-section-title">Education</div><ul class="modal-list"><li class="modal-list-item">UTN Chaco - Computer Science Technician</li><li class="modal-list-item">2022 - 2024</li></ul></div>'
     },
     experience: { 
       title: 'Work History', 

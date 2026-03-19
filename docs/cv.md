@@ -16,7 +16,7 @@ and deploying applications using AWS cloud services.
 Experienced in automation with Python, bidirectional client-server communication, and frontend performance optimization. I
 also have experience in mobile development and building responsive cross-platform interfaces.
 My academic background in programming enables me to design clean, maintainable, and scalable systems. Fluent in English
-(C2), with experience collaborating in multicultural and agile team environments.
+(C1), with experience collaborating in multicultural and agile team environments.
 
 ### RELEVANT EXPERIENCE
 
