@@ -425,6 +425,7 @@ function createLabel(text: string, x: number, z: number, yOffset: number, modalI
   if (modalId) sprite.userData.modal = modalId;
   if (download) sprite.userData.download = download;
   labelsScene.add(sprite);
+  clickableObjects.push(sprite); // Make sprite clickable
 
   const hitbox = new THREE.Mesh(
     new THREE.PlaneGeometry(4.5, 1.2),
