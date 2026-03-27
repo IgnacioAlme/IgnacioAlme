@@ -9,10 +9,19 @@ import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js'
 // ============================================
 // CONFIG
 // ============================================
+// Mobile breakpoint
+const isMobile = () => window.innerWidth <= 768;
+
 const CONFIG = {
-  // Camera (polar coordinates)
+  // Camera (polar coordinates) - desktop
   CAMERA_RADIUS: 12,
   CAMERA_HEIGHT: 16,
+  CAMERA_FOV: 60,
+  
+  // Camera (polar coordinates) - mobile
+  MOBILE_CAMERA_RADIUS: 18,
+  MOBILE_CAMERA_HEIGHT: 22,
+  MOBILE_CAMERA_FOV: 75,
   
   // Lighting
   SUN_COLOR: 0xfff8e0,
@@ -21,6 +30,7 @@ const CONFIG = {
   
   // Atmosphere
   FOG_DENSITY: 0.015,
+  MOBILE_FOG_DENSITY: 0.02,
   
   // Bloom
   BLOOM_THRESHOLD: 0.2,
@@ -33,6 +43,7 @@ const CONFIG = {
   
   // Buildings
   DECORATION_COUNT: 40,
+  DECORATION_COUNT_MOBILE: 20,
   MAP_SIZE: 40,
   CENTER_CLEAR_RADIUS: 12
 };
@@ -58,7 +69,7 @@ const BUILDING_CONFIG = [
   { id: 'resume', type: 'resume', x: -7.6, z: -2.5, label: 'Resume', color: 0x8b5cf6, download: 'Ignacio Almenar CV dev - ENG-3.pdf' }
 ];
 
-const DECORATION_COUNT = CONFIG.DECORATION_COUNT;
+const DECORATION_COUNT = isMobile() ? CONFIG.DECORATION_COUNT_MOBILE : CONFIG.DECORATION_COUNT;
 const MAP_SIZE = CONFIG.MAP_SIZE;
 const CENTER_CLEAR_RADIUS = CONFIG.CENTER_CLEAR_RADIUS;
 // ============================================
@@ -88,10 +99,15 @@ scene.fog = new THREE.FogExp2(CONFIG.GT_DARK, CONFIG.FOG_DENSITY);
 
 // Polar coordinate camera system
 let cameraAngle = 0.3;
-const CAMERA_RADIUS = CONFIG.CAMERA_RADIUS;
-const CAMERA_HEIGHT = CONFIG.CAMERA_HEIGHT;
+let CAMERA_RADIUS = CONFIG.CAMERA_RADIUS;
+let CAMERA_HEIGHT = CONFIG.CAMERA_HEIGHT;
 
-const camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 1000);
+const camera = new THREE.PerspectiveCamera(
+  isMobile() ? CONFIG.MOBILE_CAMERA_FOV : CONFIG.CAMERA_FOV, 
+  window.innerWidth / window.innerHeight, 
+  0.1, 
+  1000
+);
 
 function updateCameraPosition() {
   camera.position.x = Math.sin(cameraAngle) * CAMERA_RADIUS;
@@ -100,7 +116,22 @@ function updateCameraPosition() {
   camera.lookAt(0, 0, 0);
 }
 
+function applyMobileConfig() {
+  const mobile = isMobile();
+  CAMERA_RADIUS = mobile ? CONFIG.MOBILE_CAMERA_RADIUS : CONFIG.CAMERA_RADIUS;
+  CAMERA_HEIGHT = mobile ? CONFIG.MOBILE_CAMERA_HEIGHT : CONFIG.CAMERA_HEIGHT;
+  
+  camera.fov = mobile ? CONFIG.MOBILE_CAMERA_FOV : CONFIG.CAMERA_FOV;
+  camera.updateProjectionMatrix();
+  
+  // Adjust fog for mobile
+  if (scene.fog instanceof THREE.FogExp2) {
+    scene.fog.density = mobile ? CONFIG.MOBILE_FOG_DENSITY : CONFIG.FOG_DENSITY;
+  }
+}
+
 // Initialize camera position
+applyMobileConfig();
 updateCameraPosition();
 
 const renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
@@ -510,9 +541,15 @@ canvas.addEventListener('click', (event) => {
 });
 
 let isMouseDown = false;
+let isTouchDragging = false;
+let touchStartX = 0;
+let touchStartY = 0;
+let touchMoved = false;
+const TOUCH_THRESHOLD = 10; // pixels to consider as drag vs tap
 let autoRotate = true;
 let bloomEnabled = true;
 
+// Mouse controls
 canvas.addEventListener('mousedown', () => { isMouseDown = true; });
 canvas.addEventListener('mouseup', () => { isMouseDown = false; });
 canvas.addEventListener('mouseleave', () => { isMouseDown = false; });
@@ -524,6 +561,63 @@ canvas.addEventListener('mousemove', (e) => {
     updateSentinelPositions();
   }
 });
+
+// Touch controls
+canvas.addEventListener('touchstart', (e) => {
+  if (e.touches.length === 1) {
+    touchStartX = e.touches[0].clientX;
+    touchStartY = e.touches[0].clientY;
+    touchMoved = false;
+    isTouchDragging = true;
+  }
+}, { passive: true });
+
+canvas.addEventListener('touchmove', (e) => {
+  if (e.touches.length === 1 && isTouchDragging) {
+    const deltaX = e.touches[0].clientX - touchStartX;
+    const deltaY = e.touches[0].clientY - touchStartY;
+    
+    // Check if moved beyond threshold
+    if (Math.abs(deltaX) > TOUCH_THRESHOLD || Math.abs(deltaY) > TOUCH_THRESHOLD) {
+      touchMoved = true;
+      cameraAngle -= deltaX * 0.008;
+      updateCameraPosition();
+      updateSentinelPositions();
+      touchStartX = e.touches[0].clientX;
+      touchStartY = e.touches[0].clientY;
+    }
+  }
+}, { passive: true });
+
+canvas.addEventListener('touchend', (e) => {
+  isTouchDragging = false;
+  
+  // If didn't move much, treat as tap/click
+  if (!touchMoved) {
+    // Use the last touch position for raycasting
+    const touch = e.changedTouches[0];
+    mouse.x = (touch.clientX / window.innerWidth) * 2 - 1;
+    mouse.y = -(touch.clientY / window.innerHeight) * 2 + 1;
+    raycaster.setFromCamera(mouse, camera);
+    const intersects = raycaster.intersectObjects(clickableObjects);
+    if (intersects.length > 0) {
+      const target = intersects[0].object;
+      const userData = target.userData as Record<string, unknown>;
+      if (userData.download) {
+        const link = document.createElement('a');
+        link.href = `${import.meta.env.BASE_URL}docs/${userData.download}`;
+        link.download = userData.download as string;
+        link.click();
+      } else if (userData.modal) {
+        const modalId = userData.modal as string;
+        const sentinel = sentinelContainer.querySelector(`[data-modal="${modalId}"]`) as HTMLButtonElement | null;
+        if (sentinel) sentinel.click();
+      }
+    }
+  }
+  touchMoved = false;
+});
+
 // No zoom allowed - camera orbits at fixed radius
 
 window.addEventListener('resize', () => {
@@ -531,6 +625,9 @@ window.addEventListener('resize', () => {
   camera.updateProjectionMatrix();
   renderer.setSize(window.innerWidth, window.innerHeight);
   composer.setSize(window.innerWidth, window.innerHeight);
+  applyMobileConfig();
+  updateCameraPosition();
+  updateSentinelPositions();
 });
 
 // ============================================
@@ -624,6 +721,6 @@ console.log('CityScene initialized successfully');
   left: 0;
   width: 100%;
   height: 100%;
-  z-index: -1;
+  z-index: 0;
 }
 </style>

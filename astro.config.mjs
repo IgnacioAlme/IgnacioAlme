@@ -5,4 +5,9 @@ import { defineConfig } from 'astro/config';
 export default defineConfig({
   site: 'https://ignacioalme.github.io',
   base: '/IgnacioAlme/',
+  vite: {
+    optimizeDeps: {
+      include: ['three'],
+    },
+  },
 });

@@ -12,7 +12,7 @@ test.describe('Landing Page', () => {
   });
 
   test('page loads successfully', async ({ page }) => {
-    await expect(page).toHaveTitle(/Astro/);
+    await expect(page).toHaveTitle('Ignacio Almenar - Web Developer');
   });
 
   test('header displays credits and date', async ({ page }) => {
@@ -24,7 +24,7 @@ test.describe('Landing Page', () => {
 
   test('header displays user info', async ({ page }) => {
     await expect(page.locator('text=Ignacio Almenar')).toBeVisible();
-    await expect(page.locator('text=Bachelor\'s degree in Computer Science')).toBeVisible();
+    await expect(page.locator('text=Associate degree in Computer Science')).toBeVisible();
     await expect(page.locator('text=RESI: ARG')).toBeVisible();
     await expect(page.locator('text=LVL: 24')).toBeVisible();
   });
@@ -83,7 +83,7 @@ test.describe('Landing Page', () => {
   test('footer displays mission status and buttons', async ({ page }) => {
     await expect(page.locator('text=Mission Status')).toBeVisible();
     await expect(page.locator('.mission-text')).toContainText('Full Stack Developer');
-    await expect(page.locator('text=Enter Menu')).toBeVisible();
+    await expect(page.locator('text=My Links')).toBeVisible();
     await expect(page.locator('text=Options')).toBeVisible();
   });
 
@@ -96,7 +96,7 @@ test.describe('Landing Page', () => {
   });
 
   test('buttons are clickable', async ({ page }) => {
-    const enterButton = page.locator('button:has-text("Enter Menu")');
+    const enterButton = page.locator('button:has-text("My Links")');
     await expect(enterButton).toBeVisible();
     const optionsButton = page.locator('button:has-text("Options")');
     await expect(optionsButton).toBeVisible();
