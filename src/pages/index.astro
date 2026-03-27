@@ -8,25 +8,6 @@ import CardView from '../components/CardView.astro';
   <div class="landing-page">
     <CityScene />
     <CardView />
-    
-    <!-- Mobile Toggle Button -->
-    <button id="view-toggle" class="view-toggle" aria-label="Toggle between 3D view and cards">
-      <span class="toggle-icon toggle-icon-cards">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-          <rect x="3" y="3" width="7" height="7"/>
-          <rect x="14" y="3" width="7" height="7"/>
-          <rect x="14" y="14" width="7" height="7"/>
-          <rect x="3" y="14" width="7" height="7"/>
-        </svg>
-      </span>
-      <span class="toggle-icon toggle-icon-3d">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-          <circle cx="12" cy="12" r="10"/>
-          <path d="M12 2a15 15 0 010 20 15 15 0 010-20"/>
-          <path d="M2 12h20"/>
-        </svg>
-      </span>
-    </button>
 
     <style is:global>
       :root {
@@ -210,9 +191,10 @@ import CardView from '../components/CardView.astro';
         opacity: 0.8;
       }
 
-      .buttons {
+      .buttons-container {
         display: flex;
         gap: 0.5rem;
+        align-items: center;
       }
 
       .btn {
@@ -759,13 +741,25 @@ import CardView from '../components/CardView.astro';
       /* Show toggle only on mobile */
       @media (max-width: 768px) {
         .view-toggle {
-          display: flex;
+          display: none;
         }
 
-        /* Hide header and footer when card view is active */
-        .landing-page.show-cards header,
-        .landing-page.show-cards footer {
+        /* Hide header when card view is active */
+        .landing-page.show-cards header {
           display: none !important;
+        }
+
+        /* In card view, show footer but hide mission status */
+        .landing-page.show-cards footer {
+          display: flex !important;
+        }
+
+        .landing-page.show-cards .mission-status {
+          display: none !important;
+        }
+
+        .landing-page.show-cards .buttons-container {
+          margin-top: 0;
         }
 
         /* Adjust header for mobile */
@@ -798,37 +792,108 @@ import CardView from '../components/CardView.astro';
           display: none !important;
         }
 
-        /* Adjust footer for mobile */
+        /* Adjust footer for mobile - all buttons at bottom */
         footer {
           padding: 1rem !important;
           flex-direction: column;
-          gap: 0.75rem;
+          gap: 1rem;
           align-items: stretch !important;
         }
 
         .mission-status {
           max-width: 100% !important;
           padding: 0.75rem !important;
+          margin-bottom: 0.5rem;
         }
 
         .mission-text {
           font-size: 0.6875rem !important;
         }
 
-        .buttons {
+        /* Buttons container - all 3 buttons in a row */
+        .buttons-container {
+          display: flex;
           justify-content: center;
+          align-items: center;
+          gap: 1rem;
+          width: 100%;
         }
 
-        .btn {
+        .buttons-container .btn {
           flex: 1;
           padding: 0.625rem 1rem;
           font-size: 0.75rem;
+        }
+
+        /* Mobile toggle button in footer */
+        .view-toggle-mobile {
+          display: flex;
+          width: 48px;
+          height: 48px;
+          border-radius: 50%;
+          background: rgba(37, 175, 244, 0.2);
+          border: 2px solid rgba(37, 175, 244, 0.5);
+          backdrop-filter: blur(8px);
+          -webkit-backdrop-filter: blur(8px);
+          cursor: pointer;
+          padding: 0;
+          align-items: center;
+          justify-content: center;
+          transition: all 0.3s ease;
+          flex-shrink: 0;
+        }
+
+        .view-toggle-mobile:hover {
+          background: rgba(37, 175, 244, 0.3);
+          border-color: #25aff4;
+        }
+
+        .view-toggle-mobile:active {
+          transform: scale(0.95);
+        }
+
+        .view-toggle-mobile .toggle-icon {
+          position: absolute;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          transition: all 0.3s ease;
+        }
+
+        .view-toggle-mobile .toggle-icon svg {
+          width: 20px;
+          height: 20px;
+          color: #25aff4;
+        }
+
+        .view-toggle-mobile .toggle-icon-cards {
+          opacity: 1;
+          transform: rotate(0deg);
+        }
+
+        .view-toggle-mobile .toggle-icon-3d {
+          opacity: 0;
+          transform: rotate(-90deg);
+        }
+
+        .view-toggle-mobile.show-cards .toggle-icon-cards {
+          opacity: 0;
+          transform: rotate(90deg);
+        }
+
+        .view-toggle-mobile.show-cards .toggle-icon-3d {
+          opacity: 1;
+          transform: rotate(0deg);
         }
       }
 
       /* Hide on desktop */
       @media (min-width: 769px) {
         .view-toggle {
+          display: none !important;
+        }
+
+        .view-toggle-mobile {
           display: none !important;
         }
       }
@@ -873,8 +938,25 @@ import CardView from '../components/CardView.astro';
           Full Stack Developer. Building scalable web apps with React, Node.js & AWS. Open to new opportunities.
         </p>
       </div>
-      <div class="buttons">
+      <div class="buttons-container">
         <button class="gt-panel btn btn-primary" data-modal="links">My Links</button>
+        <button id="view-toggle-mobile" class="gt-panel view-toggle-mobile" aria-label="Toggle between 3D view and cards">
+          <span class="toggle-icon toggle-icon-cards">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <rect x="3" y="3" width="7" height="7"/>
+              <rect x="14" y="3" width="7" height="7"/>
+              <rect x="14" y="14" width="7" height="7"/>
+              <rect x="3" y="14" width="7" height="7"/>
+            </svg>
+          </span>
+          <span class="toggle-icon toggle-icon-3d">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <circle cx="12" cy="12" r="10"/>
+              <path d="M12 2a15 15 0 010 20 15 15 0 010-20"/>
+              <path d="M2 12h20"/>
+            </svg>
+          </span>
+        </button>
         <button class="gt-panel btn btn-secondary" data-modal="options">Options</button>
       </div>
     </footer>
@@ -940,7 +1022,7 @@ import CardView from '../components/CardView.astro';
   // ============================================
   // MOBILE VIEW TOGGLE
   // ============================================
-  const viewToggle = document.getElementById('view-toggle');
+  const viewToggle = document.getElementById('view-toggle') || document.getElementById('view-toggle-mobile');
   const cityCanvas = document.getElementById('city-canvas');
   const cardView = document.getElementById('card-view');
   const landingPage = document.querySelector('.landing-page');
